@@ -52,6 +52,7 @@
 		8B2202EB2202422282220034 /* CleanupCenterView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220033 /* CleanupCenterView.swift */; };
 		8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220035 /* ScriptGroupsView.swift */; };
 		8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220037 /* VersionHistoryView.swift */; };
+		8B2202EB220242228222003A /* ShareSheet.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220039 /* ShareSheet.swift */; };
 		10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -128,6 +129,7 @@
 		8B2202EB2202422282220033 /* CleanupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/CleanupCenterView.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220035 /* ScriptGroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptGroupsView.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220037 /* VersionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/VersionHistoryView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220039 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ShareSheet.swift"; sourceTree = "<group>"; };
 		C7BFF12E1FDC4B00BFA80123 /* Userscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Userscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UserscriptExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -185,6 +187,7 @@
 				8B2202EB2202422282220033 /* CleanupCenterView.swift */,
 				8B2202EB2202422282220035 /* ScriptGroupsView.swift */,
 				8B2202EB2202422282220037 /* VersionHistoryView.swift */,
+				8B2202EB2202422282220039 /* ShareSheet.swift */,
 			);
 			name = Userscript;
 			sourceTree = "<group>";
@@ -352,6 +355,7 @@
 				8B2202EB2202422282220034 /* CleanupCenterView.swift in Build */,
 				8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */,
 				8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */,
+				8B2202EB220242228222003A /* ShareSheet.swift in Build */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,7 +397,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -415,7 +419,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = "wholemodule";
@@ -438,7 +442,7 @@
 				INFOPLIST_FILE = Userscript/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Userscript;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -466,7 +470,7 @@
 				INFOPLIST_FILE = Userscript/Resources/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Userscript;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -489,7 +493,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = UserscriptExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -514,7 +518,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = UserscriptExtension/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

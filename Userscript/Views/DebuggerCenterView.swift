@@ -194,15 +194,15 @@ public struct DebuggerCenterView: View {
 
     private var filteredLogs: [LogManager.LogEntry] {
         if let filter = logFilter {
-            return logManager.logs.filter { $0.level == filter }
+            return logManager.entries.filter { $0.level == filter }
         }
-        return logManager.logs
+        return logManager.entries
     }
 
     private func color(for level: LogManager.LogLevel) -> Color {
         switch level {
         case .info: return .blue
-        case .warn: return .orange
+        case .warning: return .orange
         case .error: return .red
         case .debug: return .purple
         }
@@ -217,8 +217,7 @@ struct FilterButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.caption)
-                .fontWeight(isSelected ? .bold : .regular)
+                .font(isSelected ? .caption.bold() : .caption)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
                 .background(isSelected ? Color.blue : Color(.secondarySystemBackground))

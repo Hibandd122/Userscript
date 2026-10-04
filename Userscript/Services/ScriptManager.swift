@@ -236,7 +236,7 @@ public final class ScriptManager: ObservableObject {
     public func toggleEmergencyDisable() {
         appConfig.emergencyDisableAll.toggle()
         saveAppConfig()
-        logger.log(.warn, subsystem: .general, message: "Emergency Disable set to: \(appConfig.emergencyDisableAll)")
+        logger.log(.warning, subsystem: .general, message: "Emergency Disable set to: \(appConfig.emergencyDisableAll)")
     }
 
     // MARK: - Domain Rules Management (Phase 3 & 4)

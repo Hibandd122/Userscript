@@ -32,7 +32,7 @@ public struct CommandPaletteView: View {
                 subtitle: "Verify storage, permissions, and extension health",
                 icon: "cross.case.fill",
                 color: .green,
-                action: { _ = DiagnosticService.shared.runFullDiagnostics() }
+                action: { _ = DiagnosticService.generateReport(scripts: manager.scripts) }
             ),
             CommandItem(
                 title: "Export Full Backup",

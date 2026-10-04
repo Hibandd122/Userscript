@@ -96,8 +96,7 @@ public struct DashboardView: View {
             Button("Resume") {
                 manager.toggleEmergencyDisable()
             }
-            .font(.caption)
-            .fontWeight(.bold)
+            .font(.caption.bold())
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color.white)
@@ -111,12 +110,12 @@ public struct DashboardView: View {
 
     private var metricsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            MetricCard(title: "Total", count: "\(manager.scripts.count)", icon: "scroll.fill", color: .blue)
-            MetricCard(title: "Active", count: "\(manager.activeScriptsCount)", icon: "checkmark.circle.fill", color: .green)
-            MetricCard(title: "Disabled", count: "\(manager.disabledScriptsCount)", icon: "pause.circle.fill", color: .orange)
-            MetricCard(title: "Errors", count: "\(manager.scriptsWithErrors.count)", icon: "exclamationmark.triangle.fill", color: .red)
-            MetricCard(title: "Groups", count: "\(manager.groups.count)", icon: "folder.fill", color: .purple)
-            MetricCard(title: "Domain Rules", count: "\(manager.domainRules.count)", icon: "network", color: .teal)
+            DashboardMetricCard(title: "Total", count: "\(manager.scripts.count)", icon: "scroll.fill", color: .blue)
+            DashboardMetricCard(title: "Active", count: "\(manager.activeScriptsCount)", icon: "checkmark.circle.fill", color: .green)
+            DashboardMetricCard(title: "Disabled", count: "\(manager.disabledScriptsCount)", icon: "pause.circle.fill", color: .orange)
+            DashboardMetricCard(title: "Errors", count: "\(manager.scriptsWithErrors.count)", icon: "exclamationmark.triangle.fill", color: .red)
+            DashboardMetricCard(title: "Groups", count: "\(manager.groups.count)", icon: "folder.fill", color: .purple)
+            DashboardMetricCard(title: "Domain Rules", count: "\(manager.domainRules.count)", icon: "network", color: .teal)
         }
     }
 
@@ -273,7 +272,7 @@ public struct DashboardView: View {
     }
 }
 
-public struct MetricCard: View {
+public struct DashboardMetricCard: View {
     public let title: String
     public let count: String
     public let icon: String
@@ -285,8 +284,7 @@ public struct MetricCard: View {
                 .font(.title3)
                 .foregroundColor(color)
             Text(count)
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.title2.bold())
             Text(title)
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -297,3 +295,4 @@ public struct MetricCard: View {
         .cornerRadius(10)
     }
 }
+

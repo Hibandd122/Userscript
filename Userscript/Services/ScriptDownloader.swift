@@ -61,4 +61,9 @@ public final class ScriptDownloader {
             throw DownloadError.networkError(error.localizedDescription)
         }
     }
+
+    public static func downloadAndParse(from url: URL) async throws -> UserScript {
+        let (script, _) = try await fetch(from: url.absoluteString)
+        return script
+    }
 }
