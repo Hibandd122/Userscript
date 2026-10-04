@@ -214,7 +214,7 @@ public struct ScriptListView: View {
                 .foregroundColor(.secondary)
 
             Text("No Userscripts Installed")
-                .font(.system(.title2, design: .default).weight(.bold))
+                .font(.title2.bold())
 
             Text("Install scripts from GreasyFork or create your own custom scripts to run in Safari.")
                 .font(.body)
@@ -227,7 +227,7 @@ public struct ScriptListView: View {
                     showingAddSheet = true
                 } label: {
                     Label("Install from URL", systemImage: "link")
-                        .font(.system(.body, design: .default).weight(.semibold))
+                        .font(.body.bold())
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                 }
@@ -237,7 +237,7 @@ public struct ScriptListView: View {
                     showingNewEditorSheet = true
                 } label: {
                     Label("Create Script", systemImage: "plus")
-                        .font(.system(.body, design: .default).weight(.semibold))
+                        .font(.body.bold())
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                 }
@@ -297,7 +297,7 @@ struct MetricCard: View {
                 .foregroundColor(color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(count)
-                    .font(.system(.headline, design: .default).weight(.bold))
+                    .font(.headline.bold())
                 Text(title)
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -340,7 +340,7 @@ struct ScriptRowView: View {
                         .lineLimit(1)
 
                     Text("v\(script.version)")
-                        .font(.system(.caption2, design: .default).weight(.medium))
+                        .font(.caption2)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.secondary.opacity(0.15))

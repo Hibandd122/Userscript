@@ -103,7 +103,7 @@ public struct ScriptEditorView: View {
                             saveScript()
                             dismiss()
                         }
-                        .font(.system(.body, weight: .bold))
+                        .font(.body.bold())
                         .disabled(!hasChanges && !script.content.isEmpty)
                     }
                 }

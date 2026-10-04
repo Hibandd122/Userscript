@@ -225,7 +225,7 @@ public struct ScriptDetailView: View {
                     Text("Overall Safety")
                     Spacer()
                     Text(overallRisk.rawValue)
-                        .font(.system(.subheadline, design: .default).weight(.bold))
+                        .font(.subheadline.bold())
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
@@ -252,7 +252,7 @@ public struct ScriptDetailView: View {
                                 .font(.headline)
                             Spacer()
                             Text(cap.riskLevel.rawValue)
-                                .font(.system(.caption2, design: .default).weight(.semibold))
+                                .font(.caption2.bold())
                                 .foregroundColor(.secondary)
                         }
                         Text(cap.description)

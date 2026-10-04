@@ -194,7 +194,7 @@ public struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text("\(entry.level.emoji) [\(entry.subsystem.rawValue)]")
-                                            .font(.system(.caption2, design: .default).weight(.bold))
+                                            .font(.caption2.bold())
                                         Spacer()
                                         Text(entry.timestamp, style: .time)
                                             .font(.caption2)

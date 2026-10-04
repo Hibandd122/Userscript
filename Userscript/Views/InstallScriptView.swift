@@ -53,7 +53,7 @@ public struct InstallScriptView: View {
                                     .padding(.horizontal, 16)
                             } else {
                                 Text("Inspect Script")
-                                    .font(.system(.body, weight: .semibold))
+                                    .font(.body.bold())
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -75,7 +75,7 @@ public struct InstallScriptView: View {
                             Text("Name")
                             Spacer()
                             Text(script.name)
-                                .font(.system(.body, weight: .medium))
+                                .font(.body)
                         }
 
                         HStack {
@@ -121,7 +121,7 @@ public struct InstallScriptView: View {
                             Text("Security Assessment")
                             Spacer()
                             Text(risk.rawValue)
-                                .font(.system(.caption, weight: .bold))
+                                .font(.caption.bold())
                                 .foregroundColor(risk == .safe ? .green : risk == .high ? .red : .orange)
                         }
 
