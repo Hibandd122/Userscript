@@ -337,31 +337,22 @@ public struct ScriptListView: View {
     }
 
     private func createDefaultScript() -> UserScript {
-        UserScript(
-            id: UUID(),
-            name: "New Custom Script",
-            version: "1.0.0",
-            description: "Custom Safari enhancement script",
-            author: "User",
-            matches: ["*://*/*"],
-            grants: ["GM_log"],
-            runAt: .documentEnd,
-            content: """
-            // ==UserScript==
-            // @name         New Custom Script
-            // @namespace    https://userscript.app/
-            // @version      1.0.0
-            // @description  Custom Safari enhancement script
-            // @match        *://*/*
-            // @grant        GM_log
-            // @run-at       document-end
-            // ==/UserScript==
+        let code = """
+        // ==UserScript==
+        // @name         New Custom Script
+        // @namespace    https://userscript.app/
+        // @version      1.0.0
+        // @description  Custom Safari enhancement script
+        // @match        *://*/*
+        // @grant        GM_log
+        // @run-at       document-end
+        // ==/UserScript==
 
-            (function() {
-                'use strict';
-                console.log('Hello from custom Userscript on Safari!');
-            })();
-            """
-        )
+        (function() {
+            'use strict';
+            console.log('Hello from custom Userscript on Safari!');
+        })();
+        """
+        return ScriptParser.parse(content: code)
     }
 }

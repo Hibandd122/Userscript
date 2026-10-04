@@ -404,7 +404,7 @@ public final class ScriptManager: ObservableObject {
         #endif
     }
 
-    private func installDefaultScripts() {
+    public func installDefaultScripts() {
         var defaultList: [UserScript] = []
 
         // 1. Manga Universal Pro (Offline Bundle)

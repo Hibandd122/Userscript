@@ -110,8 +110,8 @@ public struct UpdateCenterView: View {
                             .font(.headline)
                         HStack(spacing: USSpacing.s) {
                             USBadge("v\(script.version)", variant: .info)
-                            if let author = script.author {
-                                Text("by \(author)")
+                            if !script.author.isEmpty {
+                                Text("by \(script.author)")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
