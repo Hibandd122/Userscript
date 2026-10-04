@@ -80,7 +80,7 @@
         "(function(" + paramNames.join(", ") + ") {\n" +
         "  'use strict';\n" +
         "  try {\n" +
-        script.content + "\n" +
+        (script.content || script.code || '') + "\n" +
         "  } catch (userScriptError) {\n" +
         "    console.error('[Userscript Runtime Error] In script \"" + (script.name || 'Untitled') + "\":', userScriptError);\n" +
         "    throw userScriptError;\n" +

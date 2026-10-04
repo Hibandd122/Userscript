@@ -123,6 +123,20 @@ async function runTests() {
     assert.strictEqual(matcher.test('https://gitlab.com/test', script), false);
   });
 
+  it('Matches root domain without trailing slash (e.g. https://mangadex.org with *://*.mangadex.org/*)', () => {
+    const script = { matches: ['*://*.mangadex.org/*'] };
+    assert.strictEqual(matcher.test('https://mangadex.org', script), true);
+    assert.strictEqual(matcher.test('https://mangadex.org/', script), true);
+    assert.strictEqual(matcher.test('https://mangadex.org/title/123', script), true);
+    assert.strictEqual(matcher.test('https://auth.mangadex.org/login', script), true);
+  });
+
+  it('Matches complex multi-wildcard domains (e.g. *://*.truyenqq*.*/*)', () => {
+    const script = { matches: ['*://*.truyenqq*.*/*'] };
+    assert.strictEqual(matcher.test('https://truyenqqpro.com/chap-1', script), true);
+    assert.strictEqual(matcher.test('https://truyenqq.net', script), true);
+  });
+
   console.log('\n--- 2. Testing JS Bridge Protocol ---');
   const bridge = window.__US_Bridge;
 

@@ -70,16 +70,54 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
         let dir = groupURL ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let fileURL = dir.appendingPathComponent("userscripts.json")
 
-        guard fileManager.fileExists(atPath: fileURL.path),
-              let data = try? Data(contentsOf: fileURL),
-              let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-            respond(to: context, with: ["status": "ok", "scripts": []])
+        if fileManager.fileExists(atPath: fileURL.path),
+           let data = try? Data(contentsOf: fileURL),
+           let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            let activeScripts = jsonArray.filter { ($0["enabled"] as? Bool) ?? true }
+            respond(to: context, with: ["status": "ok", "scripts": activeScripts])
             return
         }
 
-        // Return enabled scripts, sorted by priority
-        let activeScripts = jsonArray.filter { ($0["enabled"] as? Bool) ?? true }
-        respond(to: context, with: ["status": "ok", "scripts": activeScripts])
+        // Bundled fallback for instant sideload / offline support
+        if let bundleURL = Bundle.main.url(forResource: "MangaUniversalPro.bundle.user", withExtension: "js"),
+           let content = try? String(contentsOf: bundleURL, encoding: .utf8) {
+            let scriptDict: [String: Any] = [
+                "id": "manga-universal-pro",
+                "name": "Manga Universal Pro (Offline Bundle)",
+                "version": "3.0.0",
+                "author": "Manga Pro Team",
+                "enabled": true,
+                "priority": 100,
+                "runAt": "document-start",
+                "matches": [
+                    "*://*.mangadex.org/*",
+                    "*://*.cuutruyen.net/*",
+                    "*://*.truyenqq*.*/*",
+                    "*://*.tvtruyen.*/*",
+                    "*://*.nettruyen*.*/*",
+                    "*://*.blogtruyen*.*/*",
+                    "*://*.nhentai.net/*",
+                    "*://*.nhentai.xxx/*",
+                    "*://*.nhentai.to/*",
+                    "*://*.hentaiz.*/*",
+                    "*://hentaiz.*/*",
+                    "*://*.rule34.xxx/*",
+                    "*://rule34.xxx/*",
+                    "*://*.rule34video.com/*",
+                    "*://rule34video.com/*",
+                    "*://*/*chapter*",
+                    "*://*/*truyen*",
+                    "*://*/*manga*"
+                ],
+                "grants": ["none"],
+                "noframes": false,
+                "content": content
+            ]
+            respond(to: context, with: ["status": "ok", "scripts": [scriptDict]])
+            return
+        }
+
+        respond(to: context, with: ["status": "ok", "scripts": []])
     }
 
     private func handleSaveStorage(context: NSExtensionContext, message: [String: Any]) {

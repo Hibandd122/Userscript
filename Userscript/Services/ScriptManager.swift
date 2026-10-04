@@ -192,6 +192,16 @@ public final class ScriptManager: ObservableObject {
     }
 
     private func installDefaultScripts() {
+        var defaultList: [UserScript] = []
+
+        // 1. Check if Manga Universal Pro is bundled in resources
+        if let bundleURL = Bundle.main.url(forResource: "MangaUniversalPro.bundle.user", withExtension: "js"),
+           let content = try? String(contentsOf: bundleURL, encoding: .utf8) {
+            let mangaScript = ScriptParser.parse(content: content, sourceUrl: "MangaUniversalPro.bundle.user.js")
+            defaultList.append(mangaScript)
+        }
+
+        // 2. Clean Auto Dark Mode
         let sampleScriptContent = """
         // ==UserScript==
         // @name         Clean Auto Dark Mode
@@ -210,7 +220,9 @@ public final class ScriptManager: ObservableObject {
         """
 
         let defaultScript = ScriptParser.parse(content: sampleScriptContent)
-        scripts = [defaultScript]
+        defaultList.append(defaultScript)
+
+        scripts = defaultList
         saveScripts()
     }
 }

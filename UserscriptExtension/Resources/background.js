@@ -80,23 +80,27 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   // 1. Get Matching Scripts
   if (action === 'getMatchingScripts') {
     syncScripts().then(function(scripts) {
-      var url = request.payload ? request.payload.url : request.url;
+      var url = (request.payload && request.payload.url) || request.url;
+      var matcher = (typeof window !== 'undefined' && window.__US_Matcher) || 
+                    (typeof self !== 'undefined' && self.__US_Matcher) || 
+                    (typeof globalThis !== 'undefined' && globalThis.__US_Matcher);
       var matched = [];
 
       for (var i = 0; i < scripts.length; i++) {
         var s = scripts[i];
         if (s.enabled !== false) {
-          matched.push(s);
+          if (!url || !matcher || matcher.test(url, s)) {
+            matched.push(s);
+          }
         }
       }
 
       // Update Tab Badge
-      if (sender.tab && sender.tab.id) {
-        if (chrome.browserAction && chrome.browserAction.setBadgeText) {
-          var count = matched.length > 0 ? String(matched.length) : '';
-          chrome.browserAction.setBadgeText({ text: count, tabId: sender.tab.id });
-          chrome.browserAction.setBadgeBackgroundColor({ color: '#007AFF', tabId: sender.tab.id });
-        }
+      var tabId = (sender && sender.tab && sender.tab.id) || request.tabId;
+      if (tabId && chrome.browserAction && chrome.browserAction.setBadgeText) {
+        var count = matched.length > 0 ? String(matched.length) : '';
+        chrome.browserAction.setBadgeText({ text: count, tabId: tabId });
+        chrome.browserAction.setBadgeBackgroundColor({ color: '#007AFF', tabId: tabId });
       }
 
       reply(true, { scripts: matched });

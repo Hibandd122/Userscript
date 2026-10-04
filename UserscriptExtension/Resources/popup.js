@@ -20,13 +20,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Fetch matched scripts
         chrome.runtime.sendMessage({ action: "getMatchingScripts", url: currentUrl }, function(response) {
-          if (!response || !response.scripts || response.scripts.length === 0) {
+          var scripts = (response && response.payload && response.payload.scripts) || (response && response.scripts) || [];
+          if (!scripts || scripts.length === 0) {
             listEl.innerHTML = '<div class="empty">No scripts active on this tab</div>';
             badgeEl.textContent = "0";
             return;
           }
 
-          var scripts = response.scripts;
           badgeEl.textContent = String(scripts.length);
           listEl.innerHTML = "";
 
