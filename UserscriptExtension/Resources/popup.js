@@ -1,3 +1,4 @@
+// 🍎 Safari Userscript Extension Popup Controller 2.0 (Section 20, 21)
 document.addEventListener("DOMContentLoaded", function() {
   var domainEl = document.getElementById("current-domain");
   var statsEl = document.getElementById("stats-summary");
@@ -6,12 +7,16 @@ document.addEventListener("DOMContentLoaded", function() {
   var countTagEl = document.getElementById("script-count-label");
   var reloadBtn = document.getElementById("reload-tab-btn");
   var blockDomainBtn = document.getElementById("block-domain-btn");
+  var blockBtnText = document.getElementById("block-btn-text");
   var emergencyBtn = document.getElementById("emergency-btn");
+  var emergencyLabel = document.getElementById("emergency-label");
   var openBtn = document.getElementById("open-app-btn");
 
   var currentHost = "";
   var currentUrl = "";
+  var isSiteBlocked = false;
 
+  // Open native app
   if (openBtn) {
     openBtn.addEventListener("click", function(e) {
       e.preventDefault();
@@ -19,6 +24,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+  // Reload current active tab
   if (reloadBtn) {
     reloadBtn.addEventListener("click", function() {
       chrome.runtime.sendMessage({ action: "reloadTab" });
@@ -26,20 +32,29 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+  // Emergency Global Killswitch
   if (emergencyBtn) {
     emergencyBtn.addEventListener("click", function() {
-      chrome.runtime.sendMessage({ action: "toggleEmergencyDisable" }, function(res) {
+      chrome.runtime.sendMessage({ action: "toggleEmergencyDisable" }, function() {
         refreshView();
       });
     });
   }
 
+  // Block / Unblock domain toggle
   if (blockDomainBtn) {
     blockDomainBtn.addEventListener("click", function() {
       if (!currentHost) return;
-      var confirmBlock = confirm("Block all userscripts on " + currentHost + "?");
-      if (confirmBlock) {
-        chrome.runtime.sendMessage({ action: "toggleDomainRule", payload: { domain: currentHost, ruleAction: "Block" } }, function() {
+      var newAction = isSiteBlocked ? "Allow" : "Block";
+      var promptMsg = isSiteBlocked 
+        ? "Re-enable userscripts for " + currentHost + "?" 
+        : "Disable all userscripts on " + currentHost + "?";
+      
+      if (confirm(promptMsg)) {
+        chrome.runtime.sendMessage({ 
+          action: "toggleDomainRule", 
+          payload: { domain: currentHost, ruleAction: newAction } 
+        }, function() {
           chrome.runtime.sendMessage({ action: "reloadTab" });
           window.close();
         });
@@ -62,34 +77,55 @@ document.addEventListener("DOMContentLoaded", function() {
 
           chrome.runtime.sendMessage({ action: "getMatchingScripts", url: currentUrl }, function(response) {
             if (!response) {
-              listEl.innerHTML = '<div class="empty">Unable to communicate with background</div>';
+              listEl.innerHTML = '<div class="empty-state"><p>Connecting to Safari extension runtime...</p></div>';
               return;
             }
 
+            // Check Emergency Killswitch State
             if (response.emergencyDisabled) {
               emergencyBtn.classList.add("active");
-              emergencyBtn.textContent = "ON (DISABLED)";
+              emergencyLabel.textContent = "STOPPED";
               badgeEl.textContent = "OFF";
-              badgeEl.style.backgroundColor = "#ff3b30";
-              statsEl.textContent = "All scripts emergency disabled";
-              listEl.innerHTML = '<div class="empty" style="color:#ff3b30;">Emergency Killswitch is Active.<br>No scripts are executing.</div>';
-              countTagEl.textContent = "0";
+              badgeEl.style.background = "var(--error)";
+              statsEl.textContent = "Emergency Killswitch active";
+              listEl.innerHTML = '<div class="empty-state"><p style="color:var(--error); font-weight:600;">Global Killswitch Active<br>All script execution is disabled.</p></div>';
+              countTagEl.textContent = "0 Active";
               return;
             } else {
               emergencyBtn.classList.remove("active");
-              emergencyBtn.textContent = "OFF";
-              badgeEl.style.backgroundColor = "#007aff";
+              emergencyLabel.textContent = "Killswitch";
+              badgeEl.style.background = "var(--accent)";
             }
 
             var scripts = (response.payload && response.payload.scripts) || response.scripts || [];
             var tempOverrides = (response.payload && response.payload.temporaryOverrides) || response.temporaryOverrides || {};
+            var domainRules = (response.payload && response.payload.domainRules) || response.domainRules || [];
 
-            badgeEl.textContent = String(scripts.length);
-            countTagEl.textContent = String(scripts.length);
-            statsEl.textContent = scripts.length + " matched • " + scripts.length + " running";
+            // Check if current host is explicitly blocked
+            isSiteBlocked = domainRules.some(function(r) {
+              return r.domain === currentHost && r.action === "Block";
+            });
+
+            if (blockBtnText) {
+              blockBtnText.textContent = isSiteBlocked ? "Allow on Site" : "Disable on Site";
+              if (isSiteBlocked) {
+                blockDomainBtn.classList.remove("danger");
+              } else {
+                blockDomainBtn.classList.add("danger");
+              }
+            }
+
+            var runningCount = scripts.filter(function(s) {
+              var sId = s.id || s.name;
+              return tempOverrides[sId] !== false;
+            }).length;
+
+            badgeEl.textContent = String(runningCount);
+            countTagEl.textContent = runningCount + " of " + scripts.length + " Active";
+            statsEl.textContent = scripts.length + " matched • " + runningCount + " running";
 
             if (scripts.length === 0) {
-              listEl.innerHTML = '<div class="empty">No scripts active on this tab</div>';
+              listEl.innerHTML = '<div class="empty-state"><p>No scripts matched this website</p></div>';
               return;
             }
 
@@ -98,68 +134,104 @@ document.addEventListener("DOMContentLoaded", function() {
               var sId = s.id || s.name;
               var isPaused = tempOverrides[sId] === false;
 
-              var item = document.createElement("div");
-              item.className = "script-item";
+              var card = document.createElement("div");
+              card.className = "script-card";
 
-              var headerHtml = 
-                '<div class="script-header">' +
-                  '<div>' +
-                    '<div class="script-name">' + (s.name || "Untitled") + '</div>' +
-                    '<div class="script-version">v' + (s.version || "1.0.0") + (s.author ? ' • ' + s.author : '') + '</div>' +
-                  '</div>' +
-                  '<span class="status-pill ' + (isPaused ? 'paused' : 'active') + '">' +
-                    (isPaused ? 'PAUSED' : 'ACTIVE') +
-                  '</span>' +
-                '</div>';
+              var mainRow = document.createElement("div");
+              mainRow.className = "script-main";
 
-              var controlsHtml = 
-                '<div class="script-controls">' +
-                  '<button class="ctrl-btn temp-5m" data-id="' + sId + '">⏸ 5m</button>' +
-                  '<button class="ctrl-btn temp-1h" data-id="' + sId + '">⏸ 1h</button>' +
-                  (isPaused ? '<button class="ctrl-btn resume-btn" data-id="' + sId + '">▶ Resume</button>' : '') +
-                '</div>';
+              var infoCol = document.createElement("div");
+              infoCol.className = "script-info";
 
-              item.innerHTML = headerHtml + controlsHtml;
-              listEl.appendChild(item);
-            });
+              var title = document.createElement("div");
+              title.className = "script-title";
+              title.textContent = s.name || "Untitled Script";
 
-            // Bind temporary control buttons (Phase 4)
-            var temp5mBtns = listEl.querySelectorAll(".temp-5m");
-            temp5mBtns.forEach(function(btn) {
-              btn.addEventListener("click", function() {
-                var id = btn.getAttribute("data-id");
-                chrome.runtime.sendMessage({ action: "setTemporaryOverride", payload: { scriptId: id, enable: false, durationMinutes: 5 } }, function() {
-                  chrome.runtime.sendMessage({ action: "reloadTab" });
-                  window.close();
+              var meta = document.createElement("div");
+              meta.className = "script-meta";
+              meta.textContent = "v" + (s.version || "1.0.0") + (s.author ? " • " + s.author : "");
+
+              infoCol.appendChild(title);
+              infoCol.appendChild(meta);
+
+              // iOS Switch Toggle
+              var toggleLabel = document.createElement("label");
+              toggleLabel.className = "ios-toggle";
+              var toggleInput = document.createElement("input");
+              toggleInput.type = "checkbox";
+              toggleInput.checked = !isPaused;
+              var toggleSlider = document.createElement("span");
+              toggleSlider.className = "toggle-slider";
+
+              toggleInput.addEventListener("change", function() {
+                var enable = toggleInput.checked;
+                chrome.runtime.sendMessage({ 
+                  action: "setTemporaryOverride", 
+                  payload: { scriptId: sId, enable: enable } 
+                }, function() {
+                  refreshView();
                 });
               });
-            });
 
-            var temp1hBtns = listEl.querySelectorAll(".temp-1h");
-            temp1hBtns.forEach(function(btn) {
-              btn.addEventListener("click", function() {
-                var id = btn.getAttribute("data-id");
-                chrome.runtime.sendMessage({ action: "setTemporaryOverride", payload: { scriptId: id, enable: false, durationMinutes: 60 } }, function() {
-                  chrome.runtime.sendMessage({ action: "reloadTab" });
-                  window.close();
+              toggleLabel.appendChild(toggleInput);
+              toggleLabel.appendChild(toggleSlider);
+
+              mainRow.appendChild(infoCol);
+              mainRow.appendChild(toggleLabel);
+              card.appendChild(mainRow);
+
+              // Quick control micro-actions
+              var subActions = document.createElement("div");
+              subActions.className = "script-subactions";
+
+              if (isPaused) {
+                var resumeBtn = document.createElement("button");
+                resumeBtn.className = "quick-ctrl-btn resume";
+                resumeBtn.textContent = "▶ Resume";
+                resumeBtn.addEventListener("click", function() {
+                  chrome.runtime.sendMessage({ 
+                    action: "setTemporaryOverride", 
+                    payload: { scriptId: sId, enable: true } 
+                  }, function() {
+                    refreshView();
+                  });
                 });
-              });
-            });
-
-            var resumeBtns = listEl.querySelectorAll(".resume-btn");
-            resumeBtns.forEach(function(btn) {
-              btn.addEventListener("click", function() {
-                var id = btn.getAttribute("data-id");
-                chrome.runtime.sendMessage({ action: "setTemporaryOverride", payload: { scriptId: id, enable: true } }, function() {
-                  chrome.runtime.sendMessage({ action: "reloadTab" });
-                  window.close();
+                subActions.appendChild(resumeBtn);
+              } else {
+                var btn5m = document.createElement("button");
+                btn5m.className = "quick-ctrl-btn";
+                btn5m.textContent = "⏸ 5m";
+                btn5m.addEventListener("click", function() {
+                  chrome.runtime.sendMessage({ 
+                    action: "setTemporaryOverride", 
+                    payload: { scriptId: sId, enable: false, durationMinutes: 5 } 
+                  }, function() {
+                    refreshView();
+                  });
                 });
-              });
-            });
 
+                var btn1h = document.createElement("button");
+                btn1h.className = "quick-ctrl-btn";
+                btn1h.textContent = "⏸ 1h";
+                btn1h.addEventListener("click", function() {
+                  chrome.runtime.sendMessage({ 
+                    action: "setTemporaryOverride", 
+                    payload: { scriptId: sId, enable: false, durationMinutes: 60 } 
+                  }, function() {
+                    refreshView();
+                  });
+                });
+
+                subActions.appendChild(btn5m);
+                subActions.appendChild(btn1h);
+              }
+
+              card.appendChild(subActions);
+              listEl.appendChild(card);
+            });
           });
         } else {
-          domainEl.textContent = "Unknown Tab";
+          domainEl.textContent = "Safari Tab";
         }
       });
     }

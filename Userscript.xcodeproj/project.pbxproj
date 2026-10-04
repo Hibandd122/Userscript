@@ -53,6 +53,10 @@
 		8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220035 /* ScriptGroupsView.swift */; };
 		8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220037 /* VersionHistoryView.swift */; };
 		8B2202EB220242228222003A /* ShareSheet.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220039 /* ShareSheet.swift */; };
+		8B2202EB220242228222003C /* USTokens.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222003B /* USTokens.swift */; };
+		8B2202EB220242228222003E /* USComponents.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222003D /* USComponents.swift */; };
+		8B2202EB2202422282220040 /* OnboardingView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222003F /* OnboardingView.swift */; };
+		8B2202EB2202422282220042 /* UpdateCenterView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220041 /* UpdateCenterView.swift */; };
 		10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -130,6 +134,10 @@
 		8B2202EB2202422282220035 /* ScriptGroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptGroupsView.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220037 /* VersionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/VersionHistoryView.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220039 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ShareSheet.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222003B /* USTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/DesignSystem/USTokens.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222003D /* USComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/DesignSystem/USComponents.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222003F /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/OnboardingView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220041 /* UpdateCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/UpdateCenterView.swift"; sourceTree = "<group>"; };
 		C7BFF12E1FDC4B00BFA80123 /* Userscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Userscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UserscriptExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -188,6 +196,10 @@
 				8B2202EB2202422282220035 /* ScriptGroupsView.swift */,
 				8B2202EB2202422282220037 /* VersionHistoryView.swift */,
 				8B2202EB2202422282220039 /* ShareSheet.swift */,
+				8B2202EB220242228222003B /* USTokens.swift */,
+				8B2202EB220242228222003D /* USComponents.swift */,
+				8B2202EB220242228222003F /* OnboardingView.swift */,
+				8B2202EB2202422282220041 /* UpdateCenterView.swift */,
 			);
 			name = Userscript;
 			sourceTree = "<group>";
@@ -356,6 +368,10 @@
 				8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */,
 				8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */,
 				8B2202EB220242228222003A /* ShareSheet.swift in Build */,
+				8B2202EB220242228222003C /* USTokens.swift in Build */,
+				8B2202EB220242228222003E /* USComponents.swift in Build */,
+				8B2202EB2202422282220040 /* OnboardingView.swift in Build */,
+				8B2202EB2202422282220042 /* UpdateCenterView.swift in Build */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

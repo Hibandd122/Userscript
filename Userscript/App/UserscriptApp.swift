@@ -1,8 +1,11 @@
 import SwiftUI
 
+// MARK: - 🧭 UserscriptApp 2.0: Unified Apple-Native Navigation (Section 4, 30, 47, 58)
 @main
 struct UserscriptApp: App {
     @StateObject private var manager = ScriptManager.shared
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var showingOnboarding = false
     @State private var importedScript: UserScript? = nil
     @State private var showingImportSheet = false
     @State private var selectedTab = 0
@@ -10,41 +13,49 @@ struct UserscriptApp: App {
     var body: some Scene {
         WindowGroup {
             TabView(selection: $selectedTab) {
+                // Tab 1: Home Dashboard (Section 5)
                 DashboardView()
                     .tabItem {
-                        Label("Dashboard", systemImage: "square.grid.2x2.fill")
+                        Label("Home", systemImage: "house.fill")
                     }
                     .tag(0)
 
+                // Tab 2: Script Library (Section 6)
                 ScriptListView()
                     .tabItem {
                         Label("Scripts", systemImage: "scroll.fill")
                     }
                     .tag(1)
 
-                ScriptGroupsView()
+                // Tab 3: Updates Inbox (Section 16)
+                UpdateCenterView()
                     .tabItem {
-                        Label("Groups", systemImage: "folder.fill")
+                        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
                     }
                     .tag(2)
 
-                DomainManagementView()
+                // Tab 4: Diagnostics & Debugger (Section 18, 19)
+                DebuggerCenterView()
                     .tabItem {
-                        Label("Domains", systemImage: "network")
+                        Label("Diagnostics", systemImage: "cross.case.fill")
                     }
                     .tag(3)
 
-                DebuggerCenterView()
-                    .tabItem {
-                        Label("Debugger", systemImage: "ant.fill")
-                    }
-                    .tag(4)
-
+                // Tab 5: Settings (Section 34)
                 SettingsView()
                     .tabItem {
                         Label("Settings", systemImage: "gearshape.fill")
                     }
-                    .tag(5)
+                    .tag(4)
+            }
+            .onAppear {
+                if !hasCompletedOnboarding {
+                    showingOnboarding = true
+                    hasCompletedOnboarding = true
+                }
+            }
+            .sheet(isPresented: $showingOnboarding) {
+                OnboardingView()
             }
             .onOpenURL { url in
                 handleIncomingURL(url)
@@ -70,7 +81,7 @@ struct UserscriptApp: App {
                 print("Failed to open file: \(error.localizedDescription)")
             }
         } else if url.scheme == "userscript" {
-            // Deep Link System (Phase 34): e.g. userscript://install?url=...
+            // Deep Link System: userscript://install?url=...
             if url.host == "install", let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                let targetParam = components.queryItems?.first(where: { $0.name == "url" })?.value,
                let targetURL = URL(string: targetParam) {

@@ -1,21 +1,24 @@
 import SwiftUI
 
+// MARK: - 🧑💻 ScriptEditorView 2.0: Professional Mini Xcode Code Editor (Section 11)
 public struct ScriptEditorView: View {
     @ObservedObject var manager = ScriptManager.shared
     @State var script: UserScript
     @State private var codeText: String
     @State private var searchText = ""
     @State private var showingSearch = false
+    @State private var showingLineNumbers = true
     @State private var hasChanges = false
+    @State private var toastMessage: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     public init(script: UserScript) {
         _script = State(initialValue: script)
-        _codeText = State(initialValue: script.content)
+        _codeText = State(initialValue: script.code)
     }
 
     private var lineCount: Int {
-        codeText.components(separatedBy: "\n").count
+        max(1, codeText.components(separatedBy: "\n").count)
     }
 
     private var matchCount: Int {
@@ -25,86 +28,58 @@ public struct ScriptEditorView: View {
 
     public var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Search bar if toggled
-                if showingSearch {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        TextField("Find in script...", text: $searchText)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .autocorrectionDisabled(true)
-                            .textInputAutocapitalization(.never)
-                        
-                        if !searchText.isEmpty {
-                            Text("\(matchCount) found")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Button {
-                                searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .padding(8)
-                    .background(Color.secondary.opacity(0.1))
-                }
+            ZStack {
+                USColor.surfaceBackground.ignoresSafeArea()
 
-                // Editor area
-                TextEditor(text: $codeText)
-                    .font(.system(.footnote, design: .monospaced))
-                    .autocorrectionDisabled(true)
-                    .textInputAutocapitalization(.never)
-                    .padding(8)
-                    .onChange(of: codeText) { newValue in
-                        hasChanges = (newValue != script.content)
+                VStack(spacing: 0) {
+                    // Search bar if active
+                    if showingSearch {
+                        searchHeader
                     }
 
-                // Status Bar at bottom
-                HStack {
-                    Text("\(lineCount) lines")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(codeText.utf8.count) bytes")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                    if hasChanges {
-                        Text("• Edited")
-                            .font(.caption2)
-                            .foregroundColor(.orange)
+                    // Professional Code Editor Surface
+                    editorSurface
+
+                    // Developer Footer (Section 11)
+                    developerFooter
+                }
+
+                if let toast = toastMessage {
+                    VStack {
+                        Spacer()
+                        USToast(toast)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, USSpacing.xl)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color.secondary.opacity(0.08))
             }
             .navigationTitle(script.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("Done") {
                         dismiss()
                     }
+                    .font(.subheadline)
                 }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button {
-                            withAnimation {
+                    HStack(spacing: USSpacing.m) {
+                        Button(action: {
+                            withAnimation(USMotion.quickSpring) {
                                 showingSearch.toggle()
                             }
-                        } label: {
+                        }) {
                             Image(systemName: "magnifyingglass")
+                                .font(.subheadline)
                         }
 
-                        Button("Save") {
-                            saveScript()
-                            dismiss()
+                        Button(action: saveChanges) {
+                            Text("Save")
+                                .font(.subheadline.bold())
+                                .foregroundColor(hasChanges ? USColor.safariBlue : .secondary)
                         }
-                        .font(.body.bold())
-                        .disabled(!hasChanges && !script.content.isEmpty)
+                        .disabled(!hasChanges)
                     }
                 }
             }
@@ -112,26 +87,128 @@ public struct ScriptEditorView: View {
         .navigationViewStyle(.stack)
     }
 
-    private func saveScript() {
-        var updated = ScriptParser.parse(content: codeText, sourceUrl: script.sourceUrl)
-        updated.id = script.id
-        updated.enabled = script.enabled
-        updated.favorite = script.favorite
-        updated.priority = script.priority
-        updated.tags = script.tags
-        updated.createdAt = script.createdAt
-        updated.updatedAt = Date()
-        
-        // Save current code to history
-        let historyItem = UserScript.ScriptHistoryItem(
-            version: script.version,
-            content: script.content,
-            timestamp: Date(),
-            changeSummary: "Manual code edit"
-        )
-        updated.history = script.history
-        updated.history.insert(historyItem, at: 0)
+    // MARK: - Search Header
+    private var searchHeader: some View {
+        HStack(spacing: USSpacing.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+                .font(.caption)
+            TextField("Find in script...", text: $searchText)
+                .font(.system(size: 13, design: .monospaced))
+                .textFieldStyle(.plain)
 
+            if !searchText.isEmpty {
+                Text("\(matchCount) matches")
+                    .font(.caption2.bold())
+                    .foregroundColor(USColor.safariBlue)
+                Button(action: { searchText = "" }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.caption)
+                }
+            }
+        }
+        .padding(.horizontal, USSpacing.m)
+        .padding(.vertical, 8)
+        .background(USColor.secondarySurface)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(USColor.separator.opacity(0.5)),
+            alignment: .bottom
+        )
+    }
+
+    // MARK: - Editor Surface with Line Numbers
+    private var editorSurface: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if showingLineNumbers {
+                // Line Number Gutter
+                VStack(alignment: .trailing, spacing: 3.5) {
+                    ForEach(1...min(lineCount, 600), id: \.self) { num in
+                        Text("\(num)")
+                            .font(.system(size: 11, weight: .regular, design: .monospaced))
+                            .foregroundColor(.secondary.opacity(0.6))
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 6)
+                .padding(.top, 10)
+                .frame(width: 36)
+                .background(USColor.secondarySurface.opacity(0.5))
+                .overlay(
+                    Rectangle()
+                        .frame(width: 1)
+                        .foregroundColor(USColor.separator.opacity(0.3)),
+                    alignment: .trailing
+                )
+            }
+
+            // Monospaced Code Text Editor
+            TextEditor(text: $codeText)
+                .font(.system(size: 13, design: .monospaced))
+                .padding(8)
+                .onChange(of: codeText) { newValue in
+                    hasChanges = (newValue != script.code)
+                }
+        }
+    }
+
+    // MARK: - Developer Footer (Section 11)
+    private var developerFooter: some View {
+        HStack(spacing: USSpacing.m) {
+            Text("Ln \(lineCount)")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundColor(.secondary)
+            Text("•")
+                .foregroundColor(.secondary.opacity(0.5))
+            Text("JavaScript")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundColor(.secondary)
+            Text("•")
+                .foregroundColor(.secondary.opacity(0.5))
+            Text("UTF-8")
+                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                .foregroundColor(.secondary)
+
+            Spacer()
+
+            if hasChanges {
+                USBadge("Unsaved Changes", variant: .warning)
+            } else {
+                Text("\(codeText.utf8.count) bytes")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.horizontal, USSpacing.m)
+        .padding(.vertical, 8)
+        .background(USColor.secondarySurface)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(USColor.separator.opacity(0.5)),
+            alignment: .top
+        )
+    }
+
+    private func saveChanges() {
+        USHaptics.success()
+        var updated = script
+        updated.code = codeText
         manager.add(script: updated)
+        hasChanges = false
+        showToast("Script saved successfully")
+    }
+
+    private func showToast(_ msg: String) {
+        withAnimation(USMotion.quickSpring) {
+            self.toastMessage = msg
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation(USMotion.quickSpring) {
+                self.toastMessage = nil
+            }
+        }
     }
 }

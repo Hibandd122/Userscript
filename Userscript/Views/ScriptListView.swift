@@ -1,24 +1,27 @@
 import SwiftUI
 
+// MARK: - 📜 ScriptListView 2.0: Professional Script Library (Section 6, 7, 8, 24, 53)
 public struct ScriptListView: View {
     @ObservedObject var manager = ScriptManager.shared
     @ObservedObject var updater = ScriptUpdater.shared
     @State private var searchText = ""
     @State private var filterMode: FilterMode = .all
+    @State private var isCompactMode = false
     @State private var showingAddSheet = false
-    @State private var showingSettingsSheet = false
     @State private var showingNewEditorSheet = false
+    @State private var toastMessage: String? = nil
 
     public enum FilterMode: String, CaseIterable, Identifiable {
         case all = "All"
         case active = "Active"
         case disabled = "Disabled"
         case favorites = "Favorites"
+        case errors = "Errors"
 
         public var id: String { rawValue }
     }
 
-    var filteredScripts: [UserScript] {
+    private var filteredScripts: [UserScript] {
         var list = manager.scripts
 
         switch filterMode {
@@ -29,7 +32,9 @@ public struct ScriptListView: View {
         case .disabled:
             list = list.filter { !$0.enabled }
         case .favorites:
-            list = list.filter { $0.isFavorite }
+            list = list.filter { $0.favorite }
+        case .errors:
+            list = list.filter { $0.lastError != nil || $0.statistics.failureCount > 0 }
         }
 
         let query = searchText.trimmingCharacters(in: .whitespaces)
@@ -37,13 +42,16 @@ public struct ScriptListView: View {
             list = list.filter {
                 $0.name.localizedCaseInsensitiveContains(query) ||
                 $0.description.localizedCaseInsensitiveContains(query) ||
-                $0.author.localizedCaseInsensitiveContains(query) ||
+                ($0.author?.localizedCaseInsensitiveContains(query) ?? false) ||
                 $0.matches.contains(where: { $0.localizedCaseInsensitiveContains(query) })
             }
         }
 
-        // Sort by priority first (highest first), then name
+        // Pinned/Favorites first, then priority, then alphabetical
         return list.sorted {
+            if $0.favorite != $1.favorite {
+                return $0.favorite && !$1.favorite
+            }
             if $0.priority != $1.priority {
                 return $0.priority > $1.priority
             }
@@ -55,119 +63,82 @@ public struct ScriptListView: View {
 
     public var body: some View {
         NavigationView {
-            VStack(spacing: 0) {
-                // Metric Stats Banner
-                if !manager.scripts.isEmpty {
-                    metricsBanner
-                        .padding(.horizontal)
-                        .padding(.top, 4)
-                        .padding(.bottom, 6)
+            ZStack {
+                USColor.surfaceBackground.ignoresSafeArea()
 
-                    // Filter Segments
-                    Picker("Filter", selection: $filterMode) {
-                        ForEach(FilterMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                VStack(spacing: 0) {
+                    // Filter Chips Bar (Section 8)
+                    filterChipsBar
+                        .padding(.vertical, USSpacing.s)
+
+                    if manager.scripts.isEmpty {
+                        USEmptyState(
+                            icon: "scroll.fill",
+                            title: "No Userscripts Installed",
+                            message: "Customize Safari by installing scripts from URL or creating custom scripts.",
+                            actionTitle: "Install Script"
+                        ) {
+                            showingAddSheet = true
                         }
+                    } else if filteredScripts.isEmpty {
+                        USEmptyState(
+                            icon: "magnifyingglass",
+                            title: "No Results Found",
+                            message: "No scripts matched your query '\(searchText)'."
+                        )
+                    } else {
+                        // Professional Library List (Section 6)
+                        scriptsList
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.bottom, 6)
                 }
 
-                Group {
-                    if manager.scripts.isEmpty {
-                        emptyStateView
-                    } else if filteredScripts.isEmpty {
-                        noMatchView
-                    } else {
-                        List {
-                            ForEach(filteredScripts) { script in
-                                NavigationLink(destination: ScriptDetailView(script: script)) {
-                                    ScriptRowView(
-                                        script: script,
-                                        hasUpdate: updater.availableUpdates[script.id] != nil,
-                                        onToggle: {
-                                            manager.toggle(script: script)
-                                        },
-                                        onToggleFavorite: {
-                                            var updated = script
-                                            updated.isFavorite.toggle()
-                                            manager.add(script: updated)
-                                        }
-                                    )
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        withAnimation {
-                                            manager.delete(script: script)
-                                        }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                                .swipeActions(edge: .leading) {
-                                    Button {
-                                        var updated = script
-                                        updated.isFavorite.toggle()
-                                        manager.add(script: updated)
-                                    } label: {
-                                        Label(
-                                            script.isFavorite ? "Unfavorite" : "Favorite",
-                                            systemImage: script.isFavorite ? "star.slash" : "star.fill"
-                                        )
-                                    }
-                                    .tint(.yellow)
-                                }
-                            }
-                            .onDelete(perform: manager.remove)
-                        }
-                        .listStyle(.insetGrouped)
-                        .refreshable {
-                            await updater.checkAllUpdates(scripts: manager.scripts)
-                        }
+                if let toast = toastMessage {
+                    VStack {
+                        Spacer()
+                        USToast(toast)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .padding(.bottom, USSpacing.xl)
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search scripts, authors, domains...")
-            .navigationTitle("Userscripts")
+            .searchable(text: $searchText, prompt: "Search scripts, domains, authors...")
+            .navigationTitle("Scripts")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showingSettingsSheet = true
-                    } label: {
-                        Image(systemName: "gearshape")
+                    Button(action: {
+                        isCompactMode.toggle()
+                        USHaptics.tap()
+                    }) {
+                        Image(systemName: isCompactMode ? "rectangle.grid.1x2" : "list.bullet")
+                            .font(.subheadline)
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        if updater.isCheckingUpdates {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
 
-                        Menu {
-                            Button {
-                                showingAddSheet = true
-                            } label: {
-                                Label("Install from URL", systemImage: "link.badge.plus")
-                            }
-                            Button {
-                                showingNewEditorSheet = true
-                            } label: {
-                                Label("Create New Script", systemImage: "square.and.pencil")
-                            }
-                            Divider()
-                            Button {
-                                Task {
-                                    await updater.checkAllUpdates(scripts: manager.scripts)
-                                }
-                            } label: {
-                                Label("Check for Updates", systemImage: "arrow.triangle.2.circlepath")
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            showingAddSheet = true
+                        } label: {
+                            Label("Install from URL", systemImage: "link.badge.plus")
+                        }
+                        Button {
+                            showingNewEditorSheet = true
+                        } label: {
+                            Label("Create New Script", systemImage: "square.and.pencil")
+                        }
+                        Divider()
+                        Button {
+                            Task {
+                                await updater.checkAllUpdates(scripts: manager.scripts)
+                                showToast("Checked for script updates")
                             }
                         } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .bold))
+                            Label("Check Updates", systemImage: "arrow.triangle.2.circlepath")
                         }
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(USColor.safariBlue)
                     }
                 }
             }
@@ -175,223 +146,222 @@ public struct ScriptListView: View {
                 InstallScriptView()
             }
             .sheet(isPresented: $showingNewEditorSheet) {
-                ScriptEditorView(script: createDefaultNewScript())
-            }
-            .sheet(isPresented: $showingSettingsSheet) {
-                SettingsView()
+                ScriptEditorView(script: createDefaultScript())
             }
         }
         .navigationViewStyle(.stack)
     }
 
-    private var metricsBanner: some View {
-        HStack(spacing: 12) {
-            MetricCard(
-                title: "Installed",
-                count: "\(manager.scripts.count)",
-                icon: "doc.text.fill",
-                color: .blue
-            )
-            MetricCard(
-                title: "Active",
-                count: "\(manager.scripts.filter { $0.enabled }.count)",
-                icon: "checkmark.circle.fill",
-                color: .green
-            )
-            MetricCard(
-                title: "Updates",
-                count: "\(updater.availableUpdates.count)",
-                icon: "arrow.triangle.2.circlepath",
-                color: updater.availableUpdates.isEmpty ? .secondary : .orange
-            )
-        }
-    }
-
-    private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-
-            Text("No Userscripts Installed")
-                .font(.title2.bold())
-
-            Text("Install scripts from GreasyFork or create your own custom scripts to run in Safari.")
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-
-            HStack(spacing: 16) {
-                Button {
-                    showingAddSheet = true
-                } label: {
-                    Label("Install from URL", systemImage: "link")
-                        .font(.body.bold())
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    showingNewEditorSheet = true
-                } label: {
-                    Label("Create Script", systemImage: "plus")
-                        .font(.body.bold())
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.bordered)
-            }
-            .padding(.top, 10)
-        }
-        .padding()
-    }
-
-    private var noMatchView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary)
-            Text("No Matching Scripts")
-                .font(.headline)
-            Text("No scripts match your filter and search criteria.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
-    }
-
-    private func createDefaultNewScript() -> UserScript {
-        let template = """
-        // ==UserScript==
-        // @name         New Custom Script
-        // @version      1.0.0
-        // @description  Custom userscript for Safari
-        // @author       Me
-        // @match        *://*/*
-        // @run-at       document-end
-        // @grant        none
-        // ==/UserScript==
-
-        (function() {
-            'use strict';
-            console.log('Userscript loaded on: ' + window.location.href);
-        })();
-        """
-        return ScriptParser.parse(content: template)
-    }
-}
-
-struct MetricCard: View {
-    let title: String
-    let count: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.subheadline)
-                .foregroundColor(color)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(count)
-                    .font(.headline.bold())
-                Text(title)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.secondary.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-    }
-}
-
-struct ScriptRowView: View {
-    let script: UserScript
-    let hasUpdate: Bool
-    let onToggle: () -> Void
-    let onToggleFavorite: () -> Void
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Toggle("", isOn: Binding(
-                get: { script.enabled },
-                set: { _ in onToggle() }
-            ))
-            .labelsHidden()
-            .toggleStyle(SwitchToggleStyle(tint: .accentColor))
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    if script.isFavorite {
-                        Image(systemName: "star.fill")
-                            .font(.caption2)
-                            .foregroundColor(.yellow)
-                    }
-
-                    Text(script.name)
-                        .font(.headline)
-                        .foregroundColor(script.enabled ? .primary : .secondary)
-                        .lineLimit(1)
-
-                    Text("v\(script.version)")
-                        .font(.caption2)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.15))
-                        .clipShape(Capsule())
-
-                    if hasUpdate {
-                        Text("UPDATE")
-                            .font(.system(size: 9, weight: .bold))
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.2))
-                            .foregroundColor(.orange)
-                            .clipShape(Capsule())
+    // MARK: - Filter Chips Bar (Section 8)
+    private var filterChipsBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: USSpacing.s) {
+                ForEach(FilterMode.allCases) { mode in
+                    USChip(
+                        mode.rawValue,
+                        isSelected: filterMode == mode,
+                        count: countForMode(mode)
+                    ) {
+                        filterMode = mode
                     }
                 }
+            }
+            .padding(.horizontal, USSpacing.l)
+        }
+    }
 
-                if !script.description.isEmpty {
-                    Text(script.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
+    private func countForMode(_ mode: FilterMode) -> Int {
+        switch mode {
+        case .all: return manager.scripts.count
+        case .active: return manager.activeScriptsCount
+        case .disabled: return manager.disabledScriptsCount
+        case .favorites: return manager.scripts.filter { $0.favorite }.count
+        case .errors: return manager.scriptsWithErrors.count
+        }
+    }
+
+    // MARK: - Professional Scripts List (Section 6)
+    private var scriptsList: some View {
+        List {
+            ForEach(filteredScripts) { script in
+                NavigationLink(destination: ScriptDetailView(script: script)) {
+                    scriptLibraryRow(script: script)
                 }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        deleteScript(script)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
 
-                HStack(spacing: 8) {
-                    if let firstMatch = script.matches.first {
-                        Label(firstMatch, systemImage: "globe")
+                    Button {
+                        toggleScript(script)
+                    } label: {
+                        Label(script.enabled ? "Disable" : "Enable", systemImage: script.enabled ? "pause.circle" : "play.circle")
+                    }
+                    .tint(script.enabled ? .orange : .green)
+                }
+                .swipeActions(edge: .leading) {
+                    Button {
+                        toggleFavorite(script)
+                    } label: {
+                        Label(script.favorite ? "Unpin" : "Pin", systemImage: script.favorite ? "pin.slash.fill" : "pin.fill")
+                    }
+                    .tint(.blue)
+                }
+                .contextMenu {
+                    Button {
+                        toggleScript(script)
+                    } label: {
+                        Label(script.enabled ? "Disable" : "Enable", systemImage: script.enabled ? "pause.circle" : "play.circle")
+                    }
+
+                    Button {
+                        toggleFavorite(script)
+                    } label: {
+                        Label(script.favorite ? "Unpin Favorite" : "Pin as Favorite", systemImage: script.favorite ? "star.slash" : "star.fill")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        deleteScript(script)
+                    } label: {
+                        Label("Delete Script", systemImage: "trash")
+                    }
+                }
+            }
+        }
+        .listStyle(.plain)
+        .refreshable {
+            await updater.checkAllUpdates(scripts: manager.scripts)
+        }
+    }
+
+    // MARK: - Single Script Library Row (Section 6)
+    private func scriptLibraryRow(script: UserScript) -> some View {
+        USCard(padding: isCompactMode ? USSpacing.s : USSpacing.m) {
+            HStack(spacing: USSpacing.m) {
+                // Status icon toggle
+                Button(action: {
+                    toggleScript(script)
+                }) {
+                    Image(systemName: script.enabled ? "checkmark.circle.fill" : "circle")
+                        .font(.title2)
+                        .foregroundColor(script.enabled ? USColor.success : USColor.neutral)
+                }
+                .buttonStyle(.plain)
+
+                // Info
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        if script.favorite {
+                            Image(systemName: "pin.fill")
+                                .font(.caption2)
+                                .foregroundColor(USColor.safariBlue)
+                        }
+                        Text(script.name)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                    }
+
+                    if !isCompactMode && !script.description.isEmpty {
+                        Text(script.description)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
 
-                    if script.matches.count > 1 {
-                        Text("+\(script.matches.count - 1)")
-                            .font(.caption2)
+                    HStack(spacing: 8) {
+                        Text(script.matches.first ?? "All Domains")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                        Text("•")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                        Text("v\(script.version)")
+                            .font(.system(size: 11, weight: .medium))
                             .foregroundColor(.secondary)
                     }
+                }
 
-                    Spacer()
+                Spacer()
 
-                    let capabilities = PermissionManager.analyze(grants: script.grants)
-                    let risk = PermissionManager.calculateOverallRisk(capabilities: capabilities)
-                    if risk != .safe {
-                        Text(risk.rawValue)
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(risk == .high ? .red : .orange)
-                    }
+                // Status Pill
+                if script.statistics.failureCount > 0 {
+                    USBadge("Failed", variant: .error)
+                } else if script.enabled {
+                    USBadge("ON", variant: .active)
+                } else {
+                    USBadge("OFF", variant: .disabled)
                 }
             }
-
-            Spacer()
         }
-        .padding(.vertical, 4)
+    }
+
+    private func toggleScript(_ script: UserScript) {
+        USHaptics.tap()
+        manager.toggle(script: script)
+    }
+
+    private func toggleFavorite(_ script: UserScript) {
+        USHaptics.tap()
+        var updated = script
+        updated.favorite.toggle()
+        manager.add(script: updated)
+        showToast(updated.favorite ? "Pinned to favorites" : "Unpinned")
+    }
+
+    private func deleteScript(_ script: UserScript) {
+        USHaptics.warning()
+        withAnimation(USMotion.quickSpring) {
+            manager.delete(script: script)
+        }
+        showToast("Deleted \(script.name)")
+    }
+
+    private func showToast(_ msg: String) {
+        withAnimation(USMotion.quickSpring) {
+            self.toastMessage = msg
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            withAnimation(USMotion.quickSpring) {
+                self.toastMessage = nil
+            }
+        }
+    }
+
+    private func createDefaultScript() -> UserScript {
+        UserScript(
+            id: UUID(),
+            name: "New Custom Script",
+            version: "1.0.0",
+            description: "Custom Safari enhancement script",
+            author: "User",
+            matches: ["*://*/*"],
+            grants: ["GM_log"],
+            runAt: .documentEnd,
+            code: """
+            // ==UserScript==
+            // @name         New Custom Script
+            // @namespace    https://userscript.app/
+            // @version      1.0.0
+            // @description  Custom Safari enhancement script
+            // @match        *://*/*
+            // @grant        GM_log
+            // @run-at       document-end
+            // ==/UserScript==
+
+            (function() {
+                'use strict';
+                console.log('Hello from custom Userscript on Safari!');
+            })();
+            """
+        )
     }
 }

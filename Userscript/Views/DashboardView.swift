@@ -1,68 +1,101 @@
 import SwiftUI
 
+// MARK: - 🏠 DashboardView 2.0: Apple-Native Command & Intelligence Center (Section 5)
 public struct DashboardView: View {
     @ObservedObject var manager = ScriptManager.shared
     @State private var showingCommandPalette = false
     @State private var showingMatchTester = false
+    @State private var showingInstallSheet = false
     @State private var selectedScriptForDetail: UserScript? = nil
 
     public init() {}
 
+    private var greetingText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 12 { return "Good morning" }
+        if hour < 18 { return "Good afternoon" }
+        return "Good evening"
+    }
+
     public var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
-                    // Emergency Killswitch Banner (Phase 50)
+                VStack(spacing: USSpacing.l) {
+                    // Header Greeting
+                    headerGreetingSection
+
+                    // Emergency Killswitch Alert (Phase 50)
                     if manager.appConfig.emergencyDisableAll {
-                        emergencyBanner
+                        emergencyKillswitchCard
                     }
 
-                    // Metrics Grid (Phase 1)
-                    metricsGrid
+                    // Hero Stat Card (Section 5)
+                    heroStatusCard
 
-                    // Section: Needs Attention (Phase 1)
+                    // Quick Actions (Section 5)
+                    quickActionsGrid
+
+                    // Section: Needs Attention (Section 1, 5)
                     if !manager.needsAttentionScripts.isEmpty {
                         needsAttentionSection
                     }
 
-                    // Section: Favorites
-                    if !manager.scripts.filter({ $0.favorite }).isEmpty {
-                        favoritesSection
+                    // Section: Favorites (Section 24)
+                    let favorites = manager.scripts.filter { $0.favorite }
+                    if !favorites.isEmpty {
+                        favoritesSection(favorites: favorites)
                     }
 
-                    // Section: Recently Used (Phase 1)
+                    // Section: Recently Used (Section 25)
                     if !manager.recentlyUsedScripts.isEmpty {
                         recentlyUsedSection
                     }
-
-                    // Section: Quick Tools
-                    quickToolsSection
                 }
-                .padding()
+                .padding(.horizontal, USSpacing.l)
+                .padding(.vertical, USSpacing.m)
             }
-            .navigationTitle("Dashboard")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { showingCommandPalette = true }) {
-                        Label("Command Palette", systemImage: "command")
-                            .font(.system(size: 14, weight: .semibold))
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "safari.fill")
+                            .foregroundColor(USColor.safariBlue)
+                            .font(.subheadline)
+                        Text("Userscript")
+                            .font(.headline)
                     }
                 }
+
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        USHaptics.tap()
+                        showingCommandPalette = true
+                    }) {
+                        Image(systemName: "command")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                    }
+                }
+
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { manager.toggleEmergencyDisable() }) {
-                        Text(manager.appConfig.emergencyDisableAll ? "EMERGENCY: ON" : "Killswitch")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(manager.appConfig.emergencyDisableAll ? Color.red : Color.gray.opacity(0.2))
-                            .foregroundColor(manager.appConfig.emergencyDisableAll ? .white : .primary)
-                            .cornerRadius(6)
+                    Button(action: {
+                        USHaptics.warning()
+                        manager.toggleEmergencyDisable()
+                    }) {
+                        if manager.appConfig.emergencyDisableAll {
+                            USBadge("STOPPED", variant: .error, icon: "exclamationmark.octagon.fill")
+                        } else {
+                            Image(systemName: "shield.lefthalf.filled")
+                                .foregroundColor(USColor.safariBlue)
+                        }
                     }
                 }
             }
             .sheet(isPresented: $showingCommandPalette) {
                 CommandPaletteView()
+            }
+            .sheet(isPresented: $showingInstallSheet) {
+                InstallScriptView()
             }
             .sheet(isPresented: $showingMatchTester) {
                 NavigationView {
@@ -78,221 +111,224 @@ public struct DashboardView: View {
         .navigationViewStyle(.stack)
     }
 
-    private var emergencyBanner: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "exclamationmark.octagon.fill")
-                .font(.title2)
-                .foregroundColor(.white)
+    // MARK: - Header Greeting Section
+    private var headerGreetingSection: some View {
+        HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text("EMERGENCY KILLSWITCH ACTIVE")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
-                Text("All userscripts are globally suspended from execution.")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.9))
+                Text(greetingText)
+                    .font(.caption.bold())
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                Text("Control Center")
+                    .font(.title2.bold())
             }
             Spacer()
-            Button("Resume") {
-                manager.toggleEmergencyDisable()
-            }
-            .font(.caption.bold())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white)
-            .foregroundColor(.red)
-            .cornerRadius(8)
-        }
-        .padding()
-        .background(Color.red)
-        .cornerRadius(12)
-    }
-
-    private var metricsGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            DashboardMetricCard(title: "Total", count: "\(manager.scripts.count)", icon: "scroll.fill", color: .blue)
-            DashboardMetricCard(title: "Active", count: "\(manager.activeScriptsCount)", icon: "checkmark.circle.fill", color: .green)
-            DashboardMetricCard(title: "Disabled", count: "\(manager.disabledScriptsCount)", icon: "pause.circle.fill", color: .orange)
-            DashboardMetricCard(title: "Errors", count: "\(manager.scriptsWithErrors.count)", icon: "exclamationmark.triangle.fill", color: .red)
-            DashboardMetricCard(title: "Groups", count: "\(manager.groups.count)", icon: "folder.fill", color: .purple)
-            DashboardMetricCard(title: "Domain Rules", count: "\(manager.domainRules.count)", icon: "network", color: .teal)
+            USBadge("Safari 17+", variant: .info, icon: "checkmark.circle.fill")
         }
     }
 
-    private var needsAttentionSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                Text("Needs Attention")
-                    .font(.headline)
-                Spacer()
-                Text("\(manager.needsAttentionScripts.count)")
-                    .font(.caption)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.orange.opacity(0.2))
-                    .cornerRadius(4)
-            }
-
-            ForEach(manager.needsAttentionScripts) { script in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(script.name)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        if let err = script.lastError {
-                            Text(err)
-                                .font(.caption2)
-                                .foregroundColor(.red)
-                                .lineLimit(1)
-                        } else {
-                            Text("Repeated execution failures or untrusted source")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Button("Inspect") {
-                        selectedScriptForDetail = script
-                    }
-                    .font(.caption)
-                    .buttonStyle(.bordered)
-                }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(10)
-            }
-        }
-    }
-
-    private var favoritesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
-                Text("Favorites")
-                    .font(.headline)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(manager.scripts.filter { $0.favorite }) { script in
-                        Button(action: { selectedScriptForDetail = script }) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(script.name)
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.primary)
-                                    .lineLimit(1)
-                                Text("v\(script.version)")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                                HStack {
-                                    Circle()
-                                        .fill(script.enabled ? Color.green : Color.gray)
-                                        .frame(width: 8, height: 8)
-                                    Text(script.enabled ? "Active" : "Off")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding()
-                            .frame(width: 140, height: 90)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var recentlyUsedSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "clock.arrow.circlepath")
-                    .foregroundColor(.blue)
-                Text("Recently Used")
-                    .font(.headline)
-            }
-
-            ForEach(manager.recentlyUsedScripts.prefix(3)) { script in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(script.name)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                        if let last = script.lastExecutedAt {
-                            Text("Last run: \(last.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Text("\(script.executionCount) runs")
+    // MARK: - Emergency Killswitch Active Card
+    private var emergencyKillswitchCard: some View {
+        USCard {
+            HStack(spacing: USSpacing.m) {
+                Image(systemName: "exclamationmark.octagon.fill")
+                    .font(.title2)
+                    .foregroundColor(USColor.error)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Emergency Killswitch Active")
+                        .font(.headline)
+                        .foregroundColor(USColor.error)
+                    Text("All userscript execution is suspended across Safari.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                .padding()
-                .background(Color(.secondarySystemBackground))
-                .cornerRadius(10)
-            }
-        }
-    }
-
-    private var quickToolsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Quick Diagnostics & Tools")
-                .font(.headline)
-
-            HStack(spacing: 12) {
-                Button(action: { showingMatchTester = true }) {
-                    Label("Match Tester", systemImage: "sparkle.magnifyingglass")
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue.opacity(0.1))
-                        .foregroundColor(.blue)
-                        .cornerRadius(10)
-                }
-
-                Button(action: { showingCommandPalette = true }) {
-                    Label("Palette", systemImage: "command")
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.purple.opacity(0.1))
-                        .foregroundColor(.purple)
-                        .cornerRadius(10)
+                Spacer()
+                Button(action: {
+                    USHaptics.tap()
+                    manager.toggleEmergencyDisable()
+                }) {
+                    Text("Resume")
+                        .font(.caption.bold())
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(USColor.error)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
                 }
             }
         }
     }
-}
 
-public struct DashboardMetricCard: View {
-    public let title: String
-    public let count: String
-    public let icon: String
-    public let color: Color
+    // MARK: - Hero Status Card (Section 5)
+    private var heroStatusCard: some View {
+        USCard(padding: USSpacing.l) {
+            VStack(alignment: .leading, spacing: USSpacing.m) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Script Overview")
+                            .font(.headline)
+                        Text("\(manager.scripts.count) scripts configured in local storage")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "shield.checkerboard")
+                        .font(.title2)
+                        .foregroundColor(USColor.safariBlue)
+                }
 
-    public var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(color)
+                Divider()
+
+                HStack(spacing: USSpacing.m) {
+                    heroMetricItem(title: "Active", count: "\(manager.activeScriptsCount)", color: USColor.success)
+                    heroMetricItem(title: "Disabled", count: "\(manager.disabledScriptsCount)", color: USColor.neutral)
+                    heroMetricItem(title: "Attention", count: "\(manager.needsAttentionScripts.count)", color: manager.needsAttentionScripts.isEmpty ? USColor.neutral : USColor.warning)
+                    heroMetricItem(title: "Groups", count: "\(manager.groups.count)", color: USColor.purple)
+                }
+            }
+        }
+    }
+
+    private func heroMetricItem(title: String, count: String, color: Color) -> some View {
+        VStack(spacing: 2) {
             Text(count)
-                .font(.title2.bold())
+                .font(.title3.bold())
+                .foregroundColor(color)
             Text(title)
-                .font(.caption2)
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(10)
+    }
+
+    // MARK: - Quick Actions (Section 5)
+    private var quickActionsGrid: some View {
+        HStack(spacing: USSpacing.m) {
+            quickActionButton(title: "Install", icon: "plus.circle.fill", color: USColor.safariBlue) {
+                showingInstallSheet = true
+            }
+            quickActionButton(title: "Palette", icon: "command", color: .purple) {
+                showingCommandPalette = true
+            }
+            quickActionButton(title: "Tester", icon: "hammer.fill", color: .teal) {
+                showingMatchTester = true
+            }
+            quickActionButton(title: "Diagnostics", icon: "cross.case.fill", color: USColor.success) {
+                showingCommandPalette = true
+            }
+        }
+    }
+
+    private func quickActionButton(title: String, icon: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            USHaptics.tap()
+            action()
+        }) {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                Text(title)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(USColor.secondarySurface)
+            .cornerRadius(USRadius.medium)
+            .overlay(
+                RoundedRectangle(cornerRadius: USRadius.medium)
+                    .stroke(USColor.separator.opacity(0.4), lineWidth: 0.8)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Needs Attention Section
+    private var needsAttentionSection: some View {
+        VStack(alignment: .leading, spacing: USSpacing.s) {
+            USSectionHeader("Needs Attention", subtitle: "Scripts with recorded runtime failures")
+
+            LazyVStack(spacing: USSpacing.s) {
+                ForEach(manager.needsAttentionScripts) { script in
+                    Button(action: {
+                        selectedScriptForDetail = script
+                    }) {
+                        USCard(padding: USSpacing.m) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(script.name)
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(.primary)
+                                    if let err = script.lastError {
+                                        Text(err)
+                                            .font(.caption2)
+                                            .foregroundColor(USColor.error)
+                                            .lineLimit(1)
+                                    }
+                                }
+                                Spacer()
+                                USBadge("\(script.statistics.failureCount)x Failed", variant: .error, icon: "exclamationmark.triangle.fill")
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Favorites Section
+    private func favoritesSection(favorites: [UserScript]) -> some View {
+        VStack(alignment: .leading, spacing: USSpacing.s) {
+            USSectionHeader("Pinned & Favorites", subtitle: "Quick access to frequently run scripts")
+
+            LazyVStack(spacing: USSpacing.s) {
+                ForEach(favorites) { script in
+                    scriptItemRow(script: script)
+                }
+            }
+        }
+    }
+
+    // MARK: - Recently Used Section
+    private var recentlyUsedSection: some View {
+        VStack(alignment: .leading, spacing: USSpacing.s) {
+            USSectionHeader("Recent Activity", subtitle: "Executed scripts on matched websites")
+
+            LazyVStack(spacing: USSpacing.s) {
+                ForEach(manager.recentlyUsedScripts) { script in
+                    scriptItemRow(script: script)
+                }
+            }
+        }
+    }
+
+    private func scriptItemRow(script: UserScript) -> some View {
+        Button(action: {
+            selectedScriptForDetail = script
+        }) {
+            USCard(padding: USSpacing.m) {
+                HStack(spacing: USSpacing.m) {
+                    Image(systemName: script.enabled ? "checkmark.circle.fill" : "pause.circle.fill")
+                        .foregroundColor(script.enabled ? USColor.success : USColor.neutral)
+                        .font(.title3)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(script.name)
+                            .font(.subheadline.bold())
+                            .foregroundColor(.primary)
+                        Text(script.matches.first ?? "All Websites")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    USBadge("v\(script.version)", variant: .neutral)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
-
