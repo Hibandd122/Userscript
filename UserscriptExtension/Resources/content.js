@@ -1,28 +1,41 @@
 /**
- * Userscript Content Script Engine 2.0
- * Includes: Single-Page Application (SPA) Support (Phase 25), Lifecycle Awareness (Phase 24), Domain Rules Integration (Phase 3)
+ * Userscript Runtime & Compatibility Engine 3.0
+ * Content Script: SPA Navigation Engine, Frame Awareness & Lifecycle Manager
  */
 (function() {
   'use strict';
 
+  var globalScope = typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis);
   var currentUrl = window.location.href;
-  var bridge = window.__US_Bridge;
-  var matcher = window.__US_Matcher;
-  var injector = window.__US_Injector;
+  var bridge = globalScope.__US_Bridge;
+  var matcher = globalScope.__US_Matcher;
+  var injector = globalScope.__US_Injector;
 
   if (!bridge || !matcher || !injector) {
-    console.error('[Userscript Content] Subsystems failed to initialize properly.');
+    console.error('[Userscript Content] Critical subsystems failed to initialize.');
     return;
   }
+
+  var isTopFrame = (function() {
+    try {
+      return window.self === window.top;
+    } catch (e) {
+      return false;
+    }
+  })();
 
   var executedUrlMap = Object.create(null); // url -> Set of script IDs
   var loadedScriptsCache = [];
   var domainRulesCache = [];
   var tempOverridesCache = Object.create(null);
+  var activeScriptIdsOnPage = Object.create(null);
 
+  /**
+   * Evaluates all available scripts for the current document & URL.
+   */
   function evaluateAndInject(triggerType) {
     var url = window.location.href;
-    console.log('[Userscript Content] Evaluating scripts (' + triggerType + ') for:', url);
+    console.log('[Userscript Content] Evaluating scripts (' + triggerType + ') on:', url, isTopFrame ? '[Top Frame]' : '[Subframe]');
 
     bridge.request('getMatchingScripts', { url: url }, 10000)
       .then(function(response) {
@@ -34,58 +47,77 @@
         domainRulesCache = response.domainRules || [];
         tempOverridesCache = response.temporaryOverrides || Object.create(null);
 
-        // 1. Filter enabled and strictly matched scripts taking domain rules & temp overrides into account
         var matchedScripts = [];
+        var newActiveScriptIds = Object.create(null);
+
         for (var i = 0; i < loadedScriptsCache.length; i++) {
           var s = loadedScriptsCache[i];
           var scriptId = s.id || s.name;
 
-          if (s.enabled !== false && matcher.test(url, s, domainRulesCache, tempOverridesCache)) {
-            // Check SPA Navigation Mode (Phase 25)
-            var spaMode = s.spaMode || 'Once Per Page';
+          // Full evaluation via MatcherEngine 2.0 with Frame & Exclude Rules
+          var matchResult = matcher.evaluate(url, s, {
+            domainRules: domainRulesCache,
+            temporaryOverrides: tempOverridesCache,
+            isTopFrame: isTopFrame
+          });
+
+          if (matchResult.matched) {
+            newActiveScriptIds[scriptId] = true;
+            var spaMode = (s.spaMode || 'once-per-document').toLowerCase().replace(/\s+/g, '-');
 
             if (triggerType === 'initial') {
               matchedScripts.push(s);
               if (!executedUrlMap[url]) executedUrlMap[url] = Object.create(null);
               executedUrlMap[url][scriptId] = true;
             } else if (triggerType === 'spa_navigation') {
-              if (spaMode === 'Every Navigation') {
+              if (spaMode === 'every-navigation' || spaMode === 'always') {
+                // Cleanup previous instance before re-executing
+                injector.cleanupScript(scriptId);
                 matchedScripts.push(s);
-              } else if (spaMode === 'Once Per Unique URL') {
+              } else if (spaMode === 'once-per-url' || spaMode === 'url') {
                 if (!executedUrlMap[url] || !executedUrlMap[url][scriptId]) {
                   matchedScripts.push(s);
                   if (!executedUrlMap[url]) executedUrlMap[url] = Object.create(null);
                   executedUrlMap[url][scriptId] = true;
                 }
               }
-              // 'Once Per Page' is skipped on SPA soft navigation
+              // 'once-per-document' remains active without re-injecting
+            }
+          } else {
+            // If script matched previous URL but not current URL, clean it up!
+            if (activeScriptIdsOnPage[scriptId] && triggerType === 'spa_navigation') {
+              console.log('[Userscript SPA] Cleaning up script no longer matching new URL:', s.name);
+              injector.cleanupScript(scriptId);
             }
           }
         }
 
-        // 2. Sort by priority descending (Phase 9 & 22)
+        activeScriptIdsOnPage = newActiveScriptIds;
+
+        // Sort deterministically: Priority descending -> @run-at -> name
         matchedScripts.sort(function(a, b) {
           var pA = a.priority !== undefined ? a.priority : 100;
           var pB = b.priority !== undefined ? b.priority : 100;
-          return pB - pA;
+          if (pB !== pA) return pB - pA;
+          return (a.name || '').localeCompare(b.name || '');
         });
 
         console.log('[Userscript Content] Matched ' + matchedScripts.length + ' script(s) on ' + triggerType);
 
-        // 3. Schedule injection
+        // Schedule injection
         for (var j = 0; j < matchedScripts.length; j++) {
           injector.schedule(matchedScripts[j]);
         }
       })
       .catch(function(err) {
-        console.warn('[Userscript Content] Could not retrieve scripts:', err.message);
+        console.warn('[Userscript Content] Could not fetch matching scripts:', err.message);
       });
   }
 
   // --- Initial Page Load Execution ---
   evaluateAndInject('initial');
 
-  // --- Single-Page Application (SPA) History Hook (Phase 25) ---
+  // --- Single-Page Application (SPA) Engine ---
   function handleUrlChange() {
     var newUrl = window.location.href;
     if (newUrl !== currentUrl) {
@@ -94,7 +126,7 @@
     }
   }
 
-  // Wrap history.pushState & replaceState
+  // Hook history.pushState & history.replaceState
   try {
     var originalPushState = history.pushState;
     if (originalPushState) {
@@ -113,16 +145,19 @@
         return ret;
       };
     }
+
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
   } catch (e) {
-    console.warn('[Userscript Content] Could not patch history API:', e);
+    console.warn('[Userscript Content] Failed to hook SPA history navigation:', e);
   }
 
-  // Listen to popstate & hashchange events
-  window.addEventListener('popstate', handleUrlChange);
-  window.addEventListener('hashchange', handleUrlChange);
-
-  // Phase 24: Tab Lifecycle cleanup
-  window.addEventListener('pagehide', function() {
-    console.log('[Userscript Content] Page unloading, cleaning execution references.');
-  });
+  // Listen for Tab-level Script Reload commands from popup
+  if (bridge && typeof bridge.on === 'function') {
+    bridge.on('reloadScriptsOnTab', function() {
+      console.log('[Userscript Content] Received tab reload command, re-executing active scripts...');
+      injector.cleanupAll();
+      evaluateAndInject('initial');
+    });
+  }
 })();

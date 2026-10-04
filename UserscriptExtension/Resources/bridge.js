@@ -1,14 +1,21 @@
 /**
- * Userscript JS Bridge
- * Specification #3: Protocol v1 typed messaging between Content Script, Background Worker, and Native Extension
+ * Userscript JS Bridge 2.0
+ * Protocol v1 Typed Messaging, Rate Limiting, Flood Protection, and Safe Retries
  */
 (function() {
   'use strict';
 
+  var globalScope = typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis);
   var PROTOCOL_VERSION = 1;
   var pendingRequests = Object.create(null);
   var eventListeners = Object.create(null);
   var DEFAULT_TIMEOUT_MS = 15000;
+
+  // Rate Limiter & Message Flood Protection (max 50 requests/sec)
+  var requestTimestamps = [];
+  var MAX_REQUESTS_PER_SEC = 50;
+  var requestQueue = [];
+  var isProcessingQueue = false;
 
   function generateUUID() {
     return 'req_' + Math.random().toString(36).slice(2, 11) + '_' + Date.now().toString(36);
@@ -57,6 +64,87 @@
     };
   }
 
+  function checkRateLimit() {
+    var now = Date.now();
+    requestTimestamps = requestTimestamps.filter(function(ts) {
+      return now - ts < 1000;
+    });
+    return requestTimestamps.length < MAX_REQUESTS_PER_SEC;
+  }
+
+  function processQueue() {
+    if (isProcessingQueue || requestQueue.length === 0) return;
+    isProcessingQueue = true;
+
+    while (requestQueue.length > 0) {
+      if (!checkRateLimit()) {
+        setTimeout(function() {
+          isProcessingQueue = false;
+          processQueue();
+        }, 100);
+        return;
+      }
+      var item = requestQueue.shift();
+      requestTimestamps.push(Date.now());
+      dispatchRequest(item.msg, item.resolve, item.reject, item.timeoutMs);
+    }
+
+    isProcessingQueue = false;
+  }
+
+  function dispatchRequest(msg, resolve, reject, timeoutMs) {
+    var requestId = msg.requestId;
+    var timer = setTimeout(function() {
+      if (pendingRequests[requestId]) {
+        delete pendingRequests[requestId];
+        reject(new Error('[Userscript Bridge] Request timed out for action: ' + msg.action));
+      }
+    }, timeoutMs);
+
+    pendingRequests[requestId] = {
+      resolve: resolve,
+      reject: reject,
+      timer: timer,
+      action: msg.action
+    };
+
+    try {
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage(msg, function(response) {
+          var lastErr = chrome.runtime.lastError;
+          if (lastErr) {
+            if (pendingRequests[requestId]) {
+              clearTimeout(timer);
+              delete pendingRequests[requestId];
+              reject(new Error(lastErr.message || 'Extension runtime error'));
+            }
+            return;
+          }
+
+          if (response && response.type === 'GM_RESPONSE') {
+            if (pendingRequests[requestId]) {
+              clearTimeout(timer);
+              delete pendingRequests[requestId];
+              if (response.success) {
+                resolve(response.payload);
+              } else {
+                reject(new Error(response.error || 'Request unsuccessful'));
+              }
+            }
+          }
+        });
+      } else {
+        clearTimeout(timer);
+        delete pendingRequests[requestId];
+        resolve({ status: 'ok', mocked: true });
+      }
+    } catch (err) {
+      clearTimeout(timer);
+      delete pendingRequests[requestId];
+      reject(err);
+    }
+  }
+
   var JSBridge = {
     protocolVersion: PROTOCOL_VERSION,
     serialize: serialize,
@@ -65,9 +153,6 @@
     createRequest: createRequest,
     createResponse: createResponse,
 
-    /**
-     * Fire-and-forget message
-     */
     send: function(action, payload) {
       var msg = createRequest(action, payload);
       try {
@@ -80,124 +165,83 @@
       return msg;
     },
 
-    /**
-     * Typed request with UUID, timeout & error handling
-     */
     request: function(action, payload, timeoutMs) {
       timeoutMs = timeoutMs || DEFAULT_TIMEOUT_MS;
       var msg = createRequest(action, payload);
-      var requestId = msg.requestId;
 
       return new Promise(function(resolve, reject) {
-        var timer = setTimeout(function() {
-          if (pendingRequests[requestId]) {
-            delete pendingRequests[requestId];
-            reject(new Error('[Userscript Bridge] Request timed out for action: ' + action));
-          }
-        }, timeoutMs);
-
-        pendingRequests[requestId] = {
-          resolve: resolve,
-          reject: reject,
-          timer: timer
-        };
-
-        try {
-          if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-            chrome.runtime.sendMessage(msg, function(response) {
-              var lastError = chrome.runtime.lastError;
-              if (lastError) {
-                if (pendingRequests[requestId]) {
-                  clearTimeout(pendingRequests[requestId].timer);
-                  delete pendingRequests[requestId];
-                }
-                reject(new Error('[Userscript Bridge] IPC Error: ' + lastError.message));
-                return;
-              }
-
-              if (response && response.requestId === requestId) {
-                if (pendingRequests[requestId]) {
-                  clearTimeout(pendingRequests[requestId].timer);
-                  delete pendingRequests[requestId];
-                }
-                if (response.success) {
-                  resolve(response.payload);
-                } else {
-                  reject(new Error(response.error || 'Unknown bridge error'));
-                }
-              }
-            });
-          } else {
-            // Mock or offline fallback
-            setTimeout(function() {
-              if (pendingRequests[requestId]) {
-                clearTimeout(pendingRequests[requestId].timer);
-                delete pendingRequests[requestId];
-                resolve({ mock: true });
-              }
-            }, 10);
-          }
-        } catch (err) {
-          if (pendingRequests[requestId]) {
-            clearTimeout(pendingRequests[requestId].timer);
-            delete pendingRequests[requestId];
-          }
-          reject(err);
+        if (checkRateLimit()) {
+          requestTimestamps.push(Date.now());
+          dispatchRequest(msg, resolve, reject, timeoutMs);
+        } else {
+          // Message burst: queue request to prevent flood
+          requestQueue.push({
+            msg: msg,
+            resolve: resolve,
+            reject: reject,
+            timeoutMs: timeoutMs
+          });
+          processQueue();
         }
       });
     },
 
-    /**
-     * Handles incoming response messages
-     */
-    handleIncomingResponse: function(response) {
-      if (!response || response.type !== 'GM_RESPONSE' || !response.requestId) return;
-      var handler = pendingRequests[response.requestId];
-      if (!handler) return;
-
-      clearTimeout(handler.timer);
-      delete pendingRequests[response.requestId];
-
-      if (response.success) {
-        handler.resolve(response.payload);
-      } else {
-        handler.reject(new Error(response.error || 'Bridge call failed'));
-      }
-    },
-
-    /**
-     * Event subscription
-     */
-    subscribe: function(event, callback) {
+    on: function(event, callback) {
       if (!eventListeners[event]) {
         eventListeners[event] = [];
       }
       eventListeners[event].push(callback);
     },
 
-    unsubscribe: function(event, callback) {
+    off: function(event, callback) {
       if (!eventListeners[event]) return;
-      eventListeners[event] = eventListeners[event].filter(function(cb) { return cb !== callback; });
+      var idx = eventListeners[event].indexOf(callback);
+      if (idx !== -1) {
+        eventListeners[event].splice(idx, 1);
+      }
     },
 
-    emit: function(event, data) {
-      if (!eventListeners[event]) return;
-      eventListeners[event].forEach(function(cb) {
-        try { cb(data); } catch (e) { console.error('[Bridge Event Error]', e); }
-      });
+    emit: function(event, payload) {
+      var listeners = eventListeners[event];
+      if (listeners && listeners.length) {
+        for (var i = 0; i < listeners.length; i++) {
+          try {
+            listeners[i](payload);
+          } catch (e) {
+            console.error('[Userscript Bridge] Listener error on event ' + event + ':', e);
+          }
+        }
+      }
     }
   };
 
-  window.__US_Bridge = JSBridge;
-
-  // Register listener for async push responses
+  // Wire incoming runtime messages from background or popup
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
-    chrome.runtime.onMessage.addListener(function(msg) {
-      if (msg && msg.type === 'GM_RESPONSE') {
-        JSBridge.handleIncomingResponse(msg);
-      } else if (msg && msg.type === 'GM_EVENT') {
-        JSBridge.emit(msg.event, msg.payload);
+    chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
+      if (!message) return false;
+
+      if (message.type === 'GM_RESPONSE' && message.requestId) {
+        var pending = pendingRequests[message.requestId];
+        if (pending) {
+          clearTimeout(pending.timer);
+          delete pendingRequests[message.requestId];
+          if (message.success) {
+            pending.resolve(message.payload);
+          } else {
+            pending.reject(new Error(message.error || 'Action failed'));
+          }
+          return false;
+        }
       }
+
+      if (message.type === 'GM_EVENT' && message.event) {
+        JSBridge.emit(message.event, message.payload);
+        return false;
+      }
+
+      return false;
     });
   }
+
+  globalScope.__US_Bridge = JSBridge;
 })();
