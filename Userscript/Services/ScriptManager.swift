@@ -168,6 +168,21 @@ public final class ScriptManager: ObservableObject {
         logger.log(.info, subsystem: .storage, message: "Imported \(imported.count) scripts from JSON backup")
     }
 
+    public func importScript(from fileURL: URL) throws -> UserScript {
+        let isSecured = fileURL.startAccessingSecurityScopedResource()
+        defer {
+            if isSecured {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
+        }
+        
+        let content = try String(contentsOf: fileURL, encoding: .utf8)
+        let parsed = ScriptParser.parse(content: content, sourceUrl: fileURL.lastPathComponent)
+        add(script: parsed)
+        logger.log(.info, subsystem: .general, message: "Imported script from file: \(fileURL.lastPathComponent)")
+        return parsed
+    }
+
     private func notifyExtensionReload() {
         #if canImport(CoreFoundation)
         let notificationCenter = CFNotificationCenterGetDarwinNotifyCenter()

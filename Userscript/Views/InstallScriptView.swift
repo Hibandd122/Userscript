@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 public struct InstallScriptView: View {
     @ObservedObject var manager = ScriptManager.shared
@@ -7,6 +8,7 @@ public struct InstallScriptView: View {
     @State private var errorMessage: String? = nil
     @State private var previewScript: UserScript? = nil
     @State private var previewCode: String? = nil
+    @State private var showingFilePicker = false
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -14,7 +16,7 @@ public struct InstallScriptView: View {
     public var body: some View {
         NavigationView {
             Form {
-                Section("Install from GreasyFork or URL") {
+                Section("Install from GreasyFork or Web URL") {
                     HStack {
                         TextField("https://greasyfork.org/scripts/...", text: $urlString)
                             .keyboardType(.URL)
@@ -58,6 +60,21 @@ public struct InstallScriptView: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .disabled(urlString.trimmingCharacters(in: .whitespaces).isEmpty || isDownloading)
+                    }
+                }
+
+                Section("Install from Local File") {
+                    Button {
+                        showingFilePicker = true
+                    } label: {
+                        HStack {
+                            Label("Pick .user.js or .js from Files", systemImage: "doc.badge.plus")
+                                .font(.body.bold())
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
 
@@ -174,6 +191,19 @@ public struct InstallScriptView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .fileImporter(
+            isPresented: $showingFilePicker,
+            allowedContentTypes: [.item, .data, .plainText],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                loadLocalFile(url: url)
+            case .failure(let err):
+                errorMessage = err.localizedDescription
+            }
+        }
     }
 
     private func fetchScript() {
@@ -196,6 +226,25 @@ public struct InstallScriptView: View {
                     self.isDownloading = false
                 }
             }
+        }
+    }
+
+    private func loadLocalFile(url: URL) {
+        let isSecured = url.startAccessingSecurityScopedResource()
+        defer {
+            if isSecured {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        do {
+            let content = try String(contentsOf: url, encoding: .utf8)
+            let parsed = ScriptParser.parse(content: content, sourceUrl: url.lastPathComponent)
+            self.previewScript = parsed
+            self.previewCode = content
+            self.errorMessage = nil
+        } catch {
+            self.errorMessage = "Failed to read file: \(error.localizedDescription)"
         }
     }
 }

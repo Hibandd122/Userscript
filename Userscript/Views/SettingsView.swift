@@ -10,6 +10,8 @@ public struct SettingsView: View {
     @State private var showingDiagnosticsSheet = false
     @State private var showingLogsSheet = false
     @State private var copiedDiagnostic = false
+    @State private var showingRestorePicker = false
+    @State private var restoreStatusMessage: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -99,6 +101,18 @@ public struct SettingsView: View {
                         }
                     } label: {
                         Label("Export Scripts as JSON", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button {
+                        showingRestorePicker = true
+                    } label: {
+                        Label("Restore Backup from JSON File", systemImage: "arrow.down.doc")
+                    }
+
+                    if let msg = restoreStatusMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
 
                     Button(role: .destructive) {
@@ -231,5 +245,28 @@ public struct SettingsView: View {
             }
         }
         .navigationViewStyle(.stack)
+        .fileImporter(
+            isPresented: $showingRestorePicker,
+            allowedContentTypes: [.json, .plainText, .data],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                let isSecured = url.startAccessingSecurityScopedResource()
+                defer {
+                    if isSecured { url.stopAccessingSecurityScopedResource() }
+                }
+                do {
+                    let data = try Data(contentsOf: url)
+                    try manager.importScripts(from: data)
+                    restoreStatusMessage = "Successfully restored scripts!"
+                } catch {
+                    restoreStatusMessage = "Restore failed: \(error.localizedDescription)"
+                }
+            case .failure(let err):
+                restoreStatusMessage = err.localizedDescription
+            }
+        }
     }
 }
