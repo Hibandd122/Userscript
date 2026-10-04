@@ -22,6 +22,10 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
 
+      - name: Run Test Suite
+        run: |
+          node tests/test-runner.js
+
       - name: Build Userscript App
         run: |
           xcodebuild clean build \

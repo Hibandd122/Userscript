@@ -30,6 +30,14 @@
 		5BF307228D244F7FB5AAF05F /* icon-48.png in Build */ = {isa = PBXBuildFile; fileRef = 851992730DD4463C8D9FFA9A /* icon-48.png */; };
 		C817F44885CE43469A7748E6 /* icon-96.png in Build */ = {isa = PBXBuildFile; fileRef = 2651184F37064DDF9EEDB932 /* icon-96.png */; };
 		9BEE0C436C4F458CA9B4248C /* icon-128.png in Build */ = {isa = PBXBuildFile; fileRef = DE52BE4522E14044AC06DFE8 /* icon-128.png */; };
+		8A1101DA1101411181110002 /* DiagnosticService.swift in Build */ = {isa = PBXBuildFile; fileRef = 8A1101DA1101411181110001 /* DiagnosticService.swift */; };
+		8A1101DA1101411181110004 /* LogManager.swift in Build */ = {isa = PBXBuildFile; fileRef = 8A1101DA1101411181110003 /* LogManager.swift */; };
+		8A1101DA1101411181110006 /* PermissionManager.swift in Build */ = {isa = PBXBuildFile; fileRef = 8A1101DA1101411181110005 /* PermissionManager.swift */; };
+		8A1101DA1101411181110008 /* ScriptUpdater.swift in Build */ = {isa = PBXBuildFile; fileRef = 8A1101DA1101411181110007 /* ScriptUpdater.swift */; };
+		8A1101DA110141118111000A /* StorageManager.swift in Build */ = {isa = PBXBuildFile; fileRef = 8A1101DA1101411181110009 /* StorageManager.swift */; };
+		8B2202EB2202422282220002 /* bridge.js in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220001 /* bridge.js */; };
+		8B2202EB2202422282220004 /* injector.js in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220003 /* injector.js */; };
+		8B2202EB2202422282220006 /* test-suite.html in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220005 /* test-suite.html */; };
 		10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -85,6 +93,14 @@
 		851992730DD4463C8D9FFA9A /* icon-48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-48.png"; sourceTree = "<group>"; };
 		2651184F37064DDF9EEDB932 /* icon-96.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-96.png"; sourceTree = "<group>"; };
 		DE52BE4522E14044AC06DFE8 /* icon-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-128.png"; sourceTree = "<group>"; };
+		8A1101DA1101411181110001 /* DiagnosticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/DiagnosticService.swift"; sourceTree = "<group>"; };
+		8A1101DA1101411181110003 /* LogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/LogManager.swift"; sourceTree = "<group>"; };
+		8A1101DA1101411181110005 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/PermissionManager.swift"; sourceTree = "<group>"; };
+		8A1101DA1101411181110007 /* ScriptUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/ScriptUpdater.swift"; sourceTree = "<group>"; };
+		8A1101DA1101411181110009 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/StorageManager.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220001 /* bridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/bridge.js"; sourceTree = "<group>"; };
+		8B2202EB2202422282220003 /* injector.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/injector.js"; sourceTree = "<group>"; };
+		8B2202EB2202422282220005 /* test-suite.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "UserscriptExtension/Resources/test-suite.html"; sourceTree = "<group>"; };
 		C7BFF12E1FDC4B00BFA80123 /* Userscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Userscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UserscriptExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -121,6 +137,11 @@
 				7640275D7DB1442C818C9510 /* ScriptEditorView.swift */,
 				FFD0228022A0439CA71C9653 /* InstallScriptView.swift */,
 				7BECE30EC8654FCE821D41AD /* SettingsView.swift */,
+				8A1101DA1101411181110001 /* DiagnosticService.swift */,
+				8A1101DA1101411181110003 /* LogManager.swift */,
+				8A1101DA1101411181110005 /* PermissionManager.swift */,
+				8A1101DA1101411181110007 /* ScriptUpdater.swift */,
+				8A1101DA1101411181110009 /* StorageManager.swift */,
 				775D7B13950F44D581C0DC69 /* Assets.xcassets */,
 				61CB7A3F61B448FBA73F2777 /* Info.plist */,
 				95810833183543DB9A055DEB /* Userscript.entitlements */,
@@ -139,6 +160,9 @@
 				CA875ABF9BD944FA8DBB9E50 /* content.js */,
 				56F9CDE2A7874600B5733FCD /* gm-api.js */,
 				CB67B53B626A4B5887F69EF8 /* matcher.js */,
+				8B2202EB2202422282220001 /* bridge.js */,
+				8B2202EB2202422282220003 /* injector.js */,
+				8B2202EB2202422282220005 /* test-suite.html */,
 				B9AD88004A7141D7B99E01AB /* popup.html */,
 				CF80E8A7348D471CBDBF8247 /* popup.css */,
 				8724A0D7EDD2433C92586DD4 /* popup.js */,
@@ -240,6 +264,9 @@
 				979FDA42B69341FAAD12C2F0 /* content.js in Resources */,
 				79A85A1DE65F4C288F0B1D43 /* gm-api.js in Resources */,
 				6447320819F34912BA27985F /* matcher.js in Resources */,
+				8B2202EB2202422282220002 /* bridge.js in Resources */,
+				8B2202EB2202422282220004 /* injector.js in Resources */,
+				8B2202EB2202422282220006 /* test-suite.html in Resources */,
 				2E140822AE054F52B4A63F1E /* popup.html in Resources */,
 				ED886B54F8C44D538CA8AE61 /* popup.css in Resources */,
 				31E06FEB9C1B4A4289956C70 /* popup.js in Resources */,
@@ -266,6 +293,11 @@
 				C6CD07555E5F459D8EC94030 /* ScriptEditorView.swift in Sources */,
 				D7FB2D5CB8134510AF94CACE /* InstallScriptView.swift in Sources */,
 				AF011F4D84A743B996709AEA /* SettingsView.swift in Sources */,
+				8A1101DA1101411181110002 /* DiagnosticService.swift in Sources */,
+				8A1101DA1101411181110004 /* LogManager.swift in Sources */,
+				8A1101DA1101411181110006 /* PermissionManager.swift in Sources */,
+				8A1101DA1101411181110008 /* ScriptUpdater.swift in Sources */,
+				8A1101DA110141118111000A /* StorageManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

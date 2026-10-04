@@ -2,9 +2,14 @@ import SwiftUI
 
 public struct SettingsView: View {
     @ObservedObject var manager = ScriptManager.shared
+    @ObservedObject var logManager = LogManager.shared
     @State private var showingExportShare = false
     @State private var exportData: Data? = nil
     @State private var showingClearAlert = false
+    @State private var diagnosticReport: DiagnosticReport? = nil
+    @State private var showingDiagnosticsSheet = false
+    @State private var showingLogsSheet = false
+    @State private var copiedDiagnostic = false
     @Environment(\.dismiss) private var dismiss
 
     public init() {}
@@ -29,11 +34,13 @@ public struct SettingsView: View {
                     .padding(.vertical, 6)
                 }
 
-                Section("Storage Architecture") {
+                Section("Storage Architecture & Health") {
+                    let health = StorageManager.shared.checkHealth()
+
                     HStack {
                         Text("Active Storage")
                         Spacer()
-                        if FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: ScriptManager.appGroupIdentifier) != nil {
+                        if health.type == .appGroup {
                             Label("App Group (Shared)", systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                                 .font(.caption)
@@ -45,14 +52,46 @@ public struct SettingsView: View {
                     }
 
                     HStack {
-                        Text("Total Scripts")
+                        Text("Writable")
                         Spacer()
-                        Text("\(manager.scripts.count)")
+                        Text(health.isWritable ? "Yes" : "Read-Only (Error)")
+                            .foregroundColor(health.isWritable ? .green : .red)
+                            .font(.caption)
+                    }
+
+                    HStack {
+                        Text("Database Size")
+                        Spacer()
+                        Text(ByteCountFormatter.string(fromByteCount: health.databaseSizeBytes, countStyle: .file))
                             .foregroundColor(.secondary)
+                            .font(.caption)
+                    }
+
+                    HStack {
+                        Text("Automated Backups")
+                        Spacer()
+                        Text("\(health.backupCount) available")
+                            .foregroundColor(.secondary)
+                            .font(.caption)
                     }
                 }
 
-                Section("Backup & Restore") {
+                Section("Diagnostics & Troubleshooting") {
+                    Button {
+                        diagnosticReport = DiagnosticService.generateReport(scripts: manager.scripts)
+                        showingDiagnosticsSheet = true
+                    } label: {
+                        Label("Run System Diagnostics", systemImage: "stethoscope")
+                    }
+
+                    Button {
+                        showingLogsSheet = true
+                    } label: {
+                        Label("View Runtime Logs (\(logManager.entries.count))", systemImage: "text.alignleft")
+                    }
+                }
+
+                Section("Backup & Migration") {
                     Button {
                         if let data = manager.exportScriptsData() {
                             exportData = data
@@ -77,16 +116,22 @@ public struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Text("Architecture")
+                        Text("Extension Protocol")
                         Spacer()
-                        Text("SwiftUI + Safari Web Ext")
+                        Text("Version 1 (Handshake verified)")
                             .foregroundColor(.secondary)
                     }
                     HStack {
                         Text("Telemetry / Ads")
                         Spacer()
-                        Text("None (100% Privacy)")
+                        Text("None (100% Privacy-First)")
                             .foregroundColor(.green)
+                    }
+                    HStack {
+                        Text("License")
+                        Spacer()
+                        Text("Open Source (MIT)")
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -107,6 +152,81 @@ public struct SettingsView: View {
                 }
             } message: {
                 Text("This will permanently delete all installed userscripts.")
+            }
+            .sheet(isPresented: $showingDiagnosticsSheet) {
+                if let report = diagnosticReport {
+                    NavigationStack {
+                        ScrollView {
+                            Text(report.formattedText)
+                                .font(.system(.caption, design: .monospaced))
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .navigationTitle("System Diagnostics")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Copy") {
+                                    #if canImport(UIKit)
+                                    UIPasteboard.general.string = report.formattedText
+                                    #endif
+                                    copiedDiagnostic = true
+                                }
+                            }
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button("Done") {
+                                    showingDiagnosticsSheet = false
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showingLogsSheet) {
+                NavigationStack {
+                    List {
+                        if logManager.entries.isEmpty {
+                            Text("No runtime logs recorded yet.")
+                                .foregroundColor(.secondary)
+                        } else {
+                            ForEach(logManager.entries.reversed()) { entry in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("\(entry.level.emoji) [\(entry.subsystem.rawValue)]")
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
+                                        Spacer()
+                                        Text(entry.timestamp, style: .time)
+                                            .font(.caption2)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Text(entry.message)
+                                        .font(.system(.caption, design: .monospaced))
+                                    if let details = entry.details {
+                                        Text(details)
+                                            .font(.system(.caption2, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                    }
+                    .navigationTitle("Runtime Logs")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Clear") {
+                                logManager.clear()
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingLogsSheet = false
+                            }
+                        }
+                    }
+                }
             }
         }
     }

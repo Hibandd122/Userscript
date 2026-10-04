@@ -33,9 +33,11 @@ public struct InstallScriptView: View {
 
                     HStack(spacing: 12) {
                         Button {
+                            #if canImport(UIKit)
                             if let pasteboardString = UIPasteboard.general.string {
                                 urlString = pasteboardString.trimmingCharacters(in: .whitespacesAndNewlines)
                             }
+                            #endif
                         } label: {
                             Label("Paste", systemImage: "doc.on.clipboard")
                         }
@@ -68,7 +70,7 @@ public struct InstallScriptView: View {
                 }
 
                 if let script = previewScript {
-                    Section("Script Preview") {
+                    Section("Script Metadata") {
                         HStack {
                             Text("Name")
                             Spacer()
@@ -79,7 +81,7 @@ public struct InstallScriptView: View {
                         HStack {
                             Text("Version")
                             Spacer()
-                            Text(script.version)
+                            Text("v\(script.version)")
                                 .foregroundColor(.secondary)
                         }
 
@@ -89,19 +91,60 @@ public struct InstallScriptView: View {
                                 Spacer()
                                 Text(script.author)
                                     .foregroundColor(.secondary)
+                            }
+                        }
+
+                        HStack {
+                            Text("Execution Timing")
+                            Spacer()
+                            Text(script.runAt.title)
+                                .foregroundColor(.secondary)
                         }
 
                         if !script.description.isEmpty {
-                            Text(script.description)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Description")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(script.description)
+                                    .font(.subheadline)
+                            }
                         }
                     }
 
-                    Section("Matched Domains") {
+                    // Permission & Risk Summary
+                    let capabilities = PermissionManager.analyze(grants: script.grants)
+                    let risk = PermissionManager.calculateOverallRisk(capabilities: capabilities)
+
+                    Section("Permission Summary") {
+                        HStack {
+                            Text("Security Assessment")
+                            Spacer()
+                            Text(risk.rawValue)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(risk == .safe ? .green : risk == .high ? .red : .orange)
+                        }
+
+                        ForEach(capabilities) { cap in
+                            HStack {
+                                Image(systemName: cap.iconName)
+                                    .foregroundColor(.accentColor)
+                                    .font(.caption)
+                                Text(cap.rawValue)
+                                    .font(.subheadline)
+                                Spacer()
+                                Text(cap.riskLevel.rawValue)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+
+                    Section("Matched Domains (@match)") {
                         ForEach(script.matches, id: \.self) { match in
                             Text(match)
-                                .font(.system(.body, design: .monospaced))
+                                .font(.system(.caption, design: .monospaced))
                         }
                     }
 

@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Userscript",
   "version": "1.0.0",
-  "description": "Pure, lightweight Userscript Manager for Safari",
+  "description": "Modern Safari Userscript Manager & Runtime",
   "permissions": [
     "<all_urls>",
     "tabs",
@@ -21,7 +21,9 @@
       ],
       "js": [
         "matcher.js",
+        "bridge.js",
         "gm-api.js",
+        "injector.js",
         "content.js"
       ],
       "run_at": "document_start",

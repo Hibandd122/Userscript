@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Userscript Runtime & Engine Test Suite</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 24px; max-width: 800px; margin: 0 auto; background: #0f172a; color: #f8fafc; }
+    h1 { font-size: 22px; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+    .test-box { background: #1e293b; padding: 16px; border-radius: 10px; margin-bottom: 14px; border: 1px solid #334155; }
+    .status-pass { color: #4ade80; font-weight: bold; }
+    .status-fail { color: #f87171; font-weight: bold; }
+    .log-line { font-family: monospace; font-size: 13px; margin: 4px 0; }
+    button { background: #0284c7; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #0369a1; }
+  </style>
+  <script src="matcher.js"></script>
+  <script src="bridge.js"></script>
+  <script src="gm-api.js"></script>
+</head>
+<body>
+  <h1>⚡ Userscript Runtime Self-Diagnostic Test Suite</h1>
+  <p style="color: #94a3b8;">Verifies Matcher rules, isolated GM storage, DOM utilities, and JS Bridge protocol.</p>
+  <button id="run-btn" onclick="runAllTests()">▶ Run All Tests</button>
+
+  <div id="results" style="margin-top: 20px;"></div>
+
+  <script>
+    function logResult(suite, name, passed, details) {
+      var resEl = document.getElementById("results");
+      var item = document.createElement("div");
+      item.className = "test-box";
+      item.innerHTML = 
+        "<div><strong>[" + suite + "] " + name + ":</strong> " +
+        "<span class='" + (passed ? "status-pass" : "status-fail") + "'>" + (passed ? "PASS ✓" : "FAIL ✗") + "</span></div>" +
+        (details ? "<div class='log-line' style='color:#94a3b8;margin-top:6px;'>" + details + "</div>" : "");
+      resEl.appendChild(item);
+    }
+
+    function runAllTests() {
+      document.getElementById("results").innerHTML = "";
+
+      // 1. Test Matcher Engine
+      var m = window.__US_Matcher;
+      var testScript = {
+        matches: ["*://*.google.com/*", "https://github.com/*"],
+        excludes: ["*://*.google.com/search*"]
+      };
+
+      var passMatch1 = m.test("https://www.google.com/maps", testScript) === true;
+      var passMatch2 = m.test("https://www.google.com/search?q=test", testScript) === false; // Excluded!
+      var passMatch3 = m.test("https://github.com/Hibandd122", testScript) === true;
+      var passMatch4 = m.test("https://apple.com", testScript) === false;
+
+      logResult("Matcher", "Domain Matching (*://*.google.com/*)", passMatch1);
+      logResult("Matcher", "Exclude Rule Overrides Match", passMatch2, "Expected false for /search*");
+      logResult("Matcher", "Direct HTTPS Match (github.com/*)", passMatch3);
+      logResult("Matcher", "Unmatched Domain Rejection", passMatch4);
+
+      // 2. Test GM API Sandbox
+      var fakeScript = { id: "test_script_1", name: "Diagnostic Test Script" };
+      var gm = window.__US_CreateRuntimeContext(fakeScript);
+
+      gm.GM_setValue("test_key", 12345);
+      var retrieved = gm.GM_getValue("test_key");
+      var passStorage = retrieved === 12345;
+      logResult("GM API", "Isolated GM_setValue & GM_getValue", passStorage, "Retrieved: " + retrieved);
+
+      var list = gm.GM_listValues();
+      var passList = list.indexOf("test_key") !== -1;
+      logResult("GM API", "GM_listValues Verification", passList, "Keys: " + JSON.stringify(list));
+
+      gm.GM_deleteValue("test_key");
+      var deletedVal = gm.GM_getValue("test_key", "default_ok");
+      var passDelete = deletedVal === "default_ok";
+      logResult("GM API", "GM_deleteValue Verification", passDelete, "Expected fallback default_ok");
+
+      // 3. Test GM DOM Styling
+      var styleEl = gm.GM_addStyle(".test-class { color: red; }");
+      var passStyle = styleEl && styleEl.parentNode !== null;
+      logResult("GM API", "GM_addStyle Injection", passStyle, "Style element attached to DOM");
+
+      // 4. Test Modern GM.* Promise API
+      gm.GM.getValue("async_key", "promised_val").then(function(val) {
+        logResult("GM Modern", "GM.getValue Promise Resolves", val === "promised_val", "Resolved: " + val);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,69 +1,53 @@
 /**
- * Userscript Content Script for Safari
+ * Userscript Content Script Engine
+ * Orchestrates URL matching, priority sorting, and scheduled script injection.
  */
 (function() {
   'use strict';
 
   var currentUrl = window.location.href;
+  var bridge = window.__US_Bridge;
+  var matcher = window.__US_Matcher;
+  var injector = window.__US_Injector;
 
-  function executeScript(script) {
-    try {
-      var gm = window.__US_CreateGM(script);
-      
-      // Build function parameter list
-      var paramNames = Object.keys(gm);
-      var paramValues = paramNames.map(function(k) { return gm[k]; });
-
-      // Wrap code in closure
-      var wrappedCode = 
-        "(function(" + paramNames.join(", ") + ") {\n" +
-        "  try {\n" +
-        script.content + "\n" +
-        "  } catch (err) {\n" +
-        "    console.error('[Userscript Error in " + (script.name || 'script') + "]:', err);\n" +
-        "  }\n" +
-        "})";
-
-      var fn = new Function("return " + wrappedCode)();
-      fn.apply(window, paramValues);
-      console.log("[Userscript] Successfully injected:", script.name);
-    } catch (e) {
-      console.error("[Userscript] Injection failure for", script.name, e);
-    }
+  if (!bridge || !matcher || !injector) {
+    console.error('[Userscript Content] Subsystems failed to initialize properly.');
+    return;
   }
 
-  function scheduleScript(script) {
-    var runAt = script.runAt || "document-end";
-
-    if (runAt === "document-start") {
-      executeScript(script);
-    } else if (runAt === "document-idle") {
-      if (document.readyState === "complete") {
-        setTimeout(function() { executeScript(script); }, 1);
-      } else {
-        window.addEventListener("load", function() {
-          setTimeout(function() { executeScript(script); }, 1);
-        }, { once: true });
+  // Request matching scripts for the current page
+  bridge.request('getMatchingScripts', { url: currentUrl }, 10000)
+    .then(function(response) {
+      if (!response || !response.scripts || !Array.isArray(response.scripts)) {
+        return;
       }
-    } else {
-      // document-end or document-body
-      if (document.readyState === "interactive" || document.readyState === "complete") {
-        executeScript(script);
-      } else {
-        document.addEventListener("DOMContentLoaded", function() {
-          executeScript(script);
-        }, { once: true });
+
+      var scripts = response.scripts;
+
+      // 1. Filter enabled and strictly matched scripts
+      var matchedScripts = [];
+      for (var i = 0; i < scripts.length; i++) {
+        var s = scripts[i];
+        if (s.enabled !== false && matcher.test(currentUrl, s)) {
+          matchedScripts.push(s);
+        }
       }
-    }
-  }
 
-  // Request scripts from background script
-  chrome.runtime.sendMessage({ action: "getMatchingScripts", url: currentUrl }, function(response) {
-    if (!response || !response.scripts) return;
+      // 2. Sort by priority descending (Phase 22: Script Priority System)
+      matchedScripts.sort(function(a, b) {
+        var pA = a.priority !== undefined ? a.priority : 100;
+        var pB = b.priority !== undefined ? b.priority : 100;
+        return pB - pA;
+      });
 
-    var matchedScripts = response.scripts;
-    for (var i = 0; i < matchedScripts.length; i++) {
-      scheduleScript(matchedScripts[i]);
-    }
-  });
+      console.log('[Userscript Content] Found ' + matchedScripts.length + ' matching script(s) for:', currentUrl);
+
+      // 3. Schedule injection for each script
+      for (var j = 0; j < matchedScripts.length; j++) {
+        injector.schedule(matchedScripts[j]);
+      }
+    })
+    .catch(function(err) {
+      console.warn('[Userscript Content] Could not retrieve scripts:', err.message);
+    });
 })();

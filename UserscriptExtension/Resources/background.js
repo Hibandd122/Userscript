@@ -1,96 +1,184 @@
 /**
- * Background Service Worker for Userscript Safari Extension
+ * Userscript Safari Web Extension Background Service Worker
+ * Manages native IPC, cross-origin network requests, and script caching.
  */
 
 var cachedScripts = [];
+var nativeHandshakeDone = false;
 
-function fetchScriptsFromNative() {
-  return new Promise(function(resolve) {
+function sendNative(action, payload) {
+  return new Promise(function(resolve, reject) {
     if (typeof browser !== 'undefined' && browser.runtime && browser.runtime.sendNativeMessage) {
-      browser.runtime.sendNativeMessage("application.id", { action: "getScripts" }, function(response) {
-        if (response && response.scripts) {
-          cachedScripts = response.scripts;
+      var msg = Object.assign({ action: action }, payload || {});
+      browser.runtime.sendNativeMessage("application.id", msg, function(response) {
+        var err = browser.runtime.lastError;
+        if (err) {
+          reject(new Error(err.message));
+        } else {
+          resolve(response);
         }
-        resolve(cachedScripts);
       });
     } else {
-      resolve(cachedScripts);
+      resolve({ status: 'ok', scripts: cachedScripts });
     }
   });
 }
 
-// Initial load
-fetchScriptsFromNative();
+function initNativeConnection() {
+  sendNative('handshake')
+    .then(function(res) {
+      nativeHandshakeDone = true;
+      return syncScripts();
+    })
+    .catch(function(err) {
+      console.warn('[Userscript Background] Native handshake delayed:', err.message);
+      syncScripts();
+    });
+}
 
-// Listen to messages from content scripts and popup
+function syncScripts() {
+  return sendNative('getScripts')
+    .then(function(res) {
+      if (res && res.scripts) {
+        cachedScripts = res.scripts;
+      }
+      return cachedScripts;
+    })
+    .catch(function() {
+      return cachedScripts;
+    });
+}
+
+// Initial sync
+initNativeConnection();
+
+// Periodically refresh scripts or on tab activation
+if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.onActivated) {
+  chrome.tabs.onActivated.addListener(function() {
+    syncScripts();
+  });
+}
+
+// Global message handler
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  if (request.action === "getMatchingScripts") {
-    fetchScriptsFromNative().then(function(scripts) {
-      var url = request.url;
+  if (!request || !request.action) return false;
+
+  var action = request.action;
+  var requestId = request.requestId;
+
+  function reply(success, payload, error) {
+    var responseMsg = {
+      type: 'GM_RESPONSE',
+      requestId: requestId,
+      success: success,
+      payload: payload || {},
+      error: error || null
+    };
+    sendResponse(responseMsg);
+  }
+
+  // 1. Get Matching Scripts
+  if (action === 'getMatchingScripts') {
+    syncScripts().then(function(scripts) {
+      var url = request.payload ? request.payload.url : request.url;
       var matched = [];
 
       for (var i = 0; i < scripts.length; i++) {
-        var script = scripts[i];
-        if (script.enabled !== false) {
-          // Check matching rules
-          if (isScriptMatchingUrl(script, url)) {
-            matched.push(script);
-          }
+        var s = scripts[i];
+        if (s.enabled !== false) {
+          matched.push(s);
         }
       }
 
-      // Update badge
-      if (sender.tab && sender.tab.id && matched.length > 0) {
+      // Update Tab Badge
+      if (sender.tab && sender.tab.id) {
         if (chrome.browserAction && chrome.browserAction.setBadgeText) {
-          chrome.browserAction.setBadgeText({ text: String(matched.length), tabId: sender.tab.id });
-          chrome.browserAction.setBadgeBackgroundColor({ color: "#007AFF", tabId: sender.tab.id });
+          var count = matched.length > 0 ? String(matched.length) : '';
+          chrome.browserAction.setBadgeText({ text: count, tabId: sender.tab.id });
+          chrome.browserAction.setBadgeBackgroundColor({ color: '#007AFF', tabId: sender.tab.id });
         }
       }
 
-      sendResponse({ scripts: matched });
-    });
-    return true; // Keep sendResponse open for async
-  }
-
-  if (request.action === "xmlHttpRequest") {
-    handleXmlHttpRequest(request.details, sendResponse);
-    return true;
-  }
-
-  if (request.action === "getAllScripts") {
-    fetchScriptsFromNative().then(function(scripts) {
-      sendResponse({ scripts: scripts });
+      reply(true, { scripts: matched });
+    }).catch(function(err) {
+      reply(false, null, err.message);
     });
     return true;
   }
+
+  // 2. Cross-Origin Network Engine (GM_xmlhttpRequest)
+  if (action === 'xmlHttpRequest') {
+    var details = request.payload || request.details || {};
+    handleNetworkRequest(details, reply);
+    return true;
+  }
+
+  // 3. Storage Save
+  if (action === 'saveStorage') {
+    sendNative('saveStorage', request.payload)
+      .then(function(res) { reply(true, res); })
+      .catch(function(err) { reply(false, null, err.message); });
+    return true;
+  }
+
+  // 4. Storage Get
+  if (action === 'getStorage') {
+    sendNative('getStorage', request.payload)
+      .then(function(res) { reply(true, res); })
+      .catch(function(err) { reply(false, null, err.message); });
+    return true;
+  }
+
+  // 5. Open Tab
+  if (action === 'openTab') {
+    var tabUrl = request.payload ? request.payload.url : request.url;
+    var tabActive = request.payload ? request.payload.active : true;
+    if (chrome.tabs && chrome.tabs.create) {
+      chrome.tabs.create({ url: tabUrl, active: tabActive }, function(newTab) {
+        reply(true, { tabId: newTab ? newTab.id : null });
+      });
+    } else {
+      reply(false, null, 'Tabs API not accessible');
+    }
+    return true;
+  }
+
+  // 6. Script Status Reporting
+  if (action === 'reportScriptStatus') {
+    sendNative('reportExecution', request.payload).catch(function() {});
+    reply(true);
+    return true;
+  }
+
+  // 7. Get All Scripts (For Popup)
+  if (action === 'getAllScripts') {
+    syncScripts().then(function(scripts) {
+      reply(true, { scripts: scripts });
+    });
+    return true;
+  }
+
+  return false;
 });
 
-function isScriptMatchingUrl(script, url) {
-  if (!url) return false;
-  var matches = script.matches || ["*://*/*"];
-  for (var i = 0; i < matches.length; i++) {
-    if (matches[i] === "<all_urls>" || matches[i] === "*://*/*") return true;
-    var pattern = matches[i].replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
-    var re = new RegExp('^' + pattern + '$', 'i');
-    if (re.test(url)) return true;
-  }
-  return false;
-}
+function handleNetworkRequest(details, reply) {
+  var method = (details.method || 'GET').toUpperCase();
+  var url = details.url;
+  var headers = details.headers || {};
+  var data = details.data || null;
 
-function handleXmlHttpRequest(details, sendResponse) {
   var xhr = new XMLHttpRequest();
-  xhr.open(details.method || "GET", details.url, true);
+  xhr.open(method, url, true);
+  xhr.timeout = details.timeout || 30000;
 
-  if (details.headers) {
-    for (var h in details.headers) {
-      try {
-        xhr.setRequestHeader(h, details.headers[h]);
-      } catch (e) {}
-    }
+  for (var h in headers) {
+    try {
+      xhr.setRequestHeader(h, headers[h]);
+    } catch (e) {}
   }
 
   xhr.onload = function() {
-    sendResponse({
+    reply(true, {
       status: xhr.status,
       statusText: xhr.statusText,
       responseHeaders: xhr.getAllResponseHeaders(),
@@ -100,16 +188,16 @@ function handleXmlHttpRequest(details, sendResponse) {
   };
 
   xhr.onerror = function() {
-    sendResponse({ error: "Network error during cross-origin request" });
+    reply(false, null, 'Network request failed (CORS or host unreachable)');
   };
 
   xhr.ontimeout = function() {
-    sendResponse({ error: "Request timeout" });
+    reply(false, null, 'Network request timed out');
   };
 
   try {
-    xhr.send(details.data || null);
-  } catch (e) {
-    sendResponse({ error: e.message });
+    xhr.send(data);
+  } catch (err) {
+    reply(false, null, err.message);
   }
 }
