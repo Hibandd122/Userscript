@@ -2,38 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Userscript</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Userscript Control Center</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <div class="popup-wrapper">
-    <!-- Top Navigation Bar (Safari Native) -->
-    <header class="navbar">
-      <div class="nav-brand">
-        <div class="app-avatar">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+  <div class="popup-root">
+    
+    <!-- 1. Header (Section 3) -->
+    <header class="popup-header">
+      <div class="header-lead">
+        <div class="app-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
             <polyline points="2 17 12 22 22 17"></polyline>
             <polyline points="2 12 12 17 22 12"></polyline>
           </svg>
         </div>
-        <div class="brand-text">
-          <span class="app-title">Userscript</span>
-          <span id="version-tag" class="app-sub">Safari Runtime</span>
+        <div class="app-title-group">
+          <span class="app-name">Userscript</span>
+          <span class="app-runtime-tag">Safari Runtime</span>
         </div>
       </div>
 
-      <div class="nav-actions">
-        <!-- Quick Emergency Killswitch Icon -->
-        <button id="emergency-btn" class="nav-icon-btn" title="Emergency Pause All Scripts">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-        </button>
-        <!-- Reload Page Button -->
-        <button id="reload-tab-btn" class="nav-icon-btn" title="Reload Active Tab">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="header-trailing">
+        <!-- Compact Runtime Status Indicator (Section 3) -->
+        <div id="runtime-status-pill" class="runtime-pill active" title="Runtime Status">
+          <span class="status-dot"></span>
+          <span id="runtime-status-text" class="status-label">Active</span>
+        </div>
+
+        <!-- Reload Tab Button -->
+        <button id="reload-tab-btn" class="icon-circle-btn" title="Reload Active Tab" aria-label="Reload Tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 4 23 10 17 10"></polyline>
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
           </svg>
@@ -41,91 +42,187 @@
       </div>
     </header>
 
-    <!-- Master Website Card (Clean iOS Style) -->
-    <div class="domain-banner">
-      <div class="domain-avatar" id="domain-avatar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="2" y1="12" x2="22" y2="12"></line>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-        </svg>
-      </div>
-      <div class="domain-info">
-        <div class="domain-name-row">
-          <span id="current-domain" class="domain-name">Detecting site...</span>
+    <!-- Scrollable Main Content -->
+    <main class="popup-body">
+
+      <!-- 2. Extension Status Card (Section 4) -->
+      <section class="runtime-overview-card">
+        <div class="overview-top">
+          <div class="overview-title-row">
+            <span class="overview-symbol">◈</span>
+            <span class="overview-title">Userscript Engine</span>
+          </div>
+          <span id="overview-state-badge" class="badge-mini green">Protected</span>
         </div>
-        <span id="domain-status" class="domain-status">Checking rules...</span>
-      </div>
-      
-      <!-- Master Domain Toggle Switch -->
-      <label class="switch-control" title="Enable/Disable all userscripts on this site">
-        <input type="checkbox" id="site-master-toggle" checked>
-        <span class="switch-track"></span>
-      </label>
-    </div>
-
-    <!-- Scripts Section Header -->
-    <div class="section-bar">
-      <span class="section-title">ACTIVE ON THIS SITE</span>
-      <span id="match-badge" class="badge-count">0</span>
-    </div>
-
-    <!-- Script List Container -->
-    <main class="script-scroll-area">
-      <div id="script-list" class="script-grouped-list">
-        <!-- Rendered dynamically -->
-      </div>
-    </main>
-
-    <!-- Bottom Action Bar (Safari Toolbar Style) -->
-    <footer class="bottom-toolbar">
-      <button id="add-script-btn" class="tool-btn" title="Create or Install Script">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"></line>
-          <line x1="5" y1="12" x2="19" y2="12"></line>
-        </svg>
-        <span>New Script</span>
-      </button>
-
-      <div class="tool-divider"></div>
-
-      <button id="open-app-btn" class="tool-btn primary" title="Open Full Control Center">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7"></rect>
-          <rect x="14" y="3" width="7" height="7"></rect>
-          <rect x="14" y="14" width="7" height="7"></rect>
-          <rect x="3" y="14" width="7" height="7"></rect>
-        </svg>
-        <span>Open App</span>
-      </button>
-    </footer>
-
-    <!-- Modal Sheet for Script Temporary Controls (Options) -->
-    <div id="options-sheet" class="sheet-backdrop hidden">
-      <div class="sheet-container">
-        <div class="sheet-handle"></div>
-        <div class="sheet-header">
-          <span id="sheet-script-title" class="sheet-title">Script Settings</span>
-          <button id="sheet-close-btn" class="sheet-close">Done</button>
+        <div class="overview-metrics-row">
+          <span id="metric-total-scripts" class="metric-chip">0 installed</span>
+          <span class="metric-divider">•</span>
+          <span id="metric-active-scripts" class="metric-chip">0 active</span>
+          <span class="metric-divider">•</span>
+          <span id="metric-error-scripts" class="metric-chip">0 errors</span>
         </div>
-        <div class="sheet-body">
-          <div class="sheet-menu-group">
-            <button class="sheet-item" id="sheet-pause-5m">
-              <span class="sheet-item-label">Pause for 5 Minutes</span>
-              <span class="sheet-item-desc">Resume automatically after 5m</span>
-            </button>
-            <button class="sheet-item" id="sheet-pause-1h">
-              <span class="sheet-item-label">Pause for 1 Hour</span>
-              <span class="sheet-item-desc">Resume automatically after 1h</span>
-            </button>
-            <button class="sheet-item" id="sheet-resume-now">
-              <span class="sheet-item-label sheet-highlight">Resume Execution Now</span>
-              <span class="sheet-item-desc">Clear any temporary suspensions</span>
-            </button>
+      </section>
+
+      <!-- 3. Current Website Hero Card (Section 5, 6, 13) -->
+      <section class="current-site-card">
+        <div class="site-card-header">
+          <div class="site-avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </div>
+          <div class="site-meta">
+            <span class="site-overline">CURRENT WEBSITE</span>
+            <span id="current-domain" class="site-domain-name">Detecting...</span>
+          </div>
+
+          <!-- Master Website Toggle (Section 6) -->
+          <div class="site-toggle-wrapper" title="Toggle all scripts on this website">
+            <label class="apple-switch" aria-label="Toggle all scripts on this site">
+              <input type="checkbox" id="site-master-toggle" checked>
+              <span class="apple-slider"></span>
+            </label>
           </div>
         </div>
+
+        <!-- Compact Summary Row (Section 13) -->
+        <div class="site-summary-bar">
+          <div class="summary-stat">
+            <span class="stat-indicator green">●</span>
+            <span id="stat-running-count" class="stat-text">0 Running</span>
+          </div>
+          <div class="summary-stat">
+            <span class="stat-indicator gray">○</span>
+            <span id="stat-disabled-count" class="stat-text">0 Disabled</span>
+          </div>
+          <div class="summary-stat">
+            <span class="stat-indicator red">!</span>
+            <span id="stat-errors-count" class="stat-text">0 Errors</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Optional Error Alert (Section 14) -->
+      <div id="error-banner" class="alert-banner hidden">
+        <div class="alert-icon">⚠️</div>
+        <div class="alert-text-col">
+          <span id="error-banner-title" class="alert-title">Script Needs Attention</span>
+          <span id="error-banner-desc" class="alert-desc">Runtime execution failure</span>
+        </div>
+        <button id="error-banner-action" class="alert-action-btn">View →</button>
+      </div>
+
+      <!-- Optional Updates Available (Section 15) -->
+      <div id="update-banner" class="update-banner hidden">
+        <div class="update-lead">
+          <span class="update-icon">↻</span>
+          <span id="update-banner-text" class="update-title">1 Update Available</span>
+        </div>
+        <button id="update-banner-btn" class="update-action-btn">Inspect</button>
+      </div>
+
+      <!-- 4. Active Scripts Section (Section 7, 8) -->
+      <section class="scripts-section">
+        <div class="section-heading-row">
+          <span class="section-heading-title">ACTIVE ON THIS SITE</span>
+          <span id="section-script-count" class="section-heading-badge">0</span>
+        </div>
+
+        <div id="script-list" class="script-list-container">
+          <!-- Dynamically populated or empty state -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 5. Footer Quick Actions (Section 10, 11) -->
+    <footer class="popup-footer">
+      <div class="primary-actions-grid">
+        <button id="add-script-btn" class="action-card-btn" aria-label="New Script">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>New Script</span>
+        </button>
+
+        <button id="open-app-btn" class="action-card-btn primary" aria-label="Open Control Center">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Open App</span>
+        </button>
+      </div>
+
+      <!-- Secondary Utility Row (Section 11) -->
+      <div class="secondary-utilities-row">
+        <button id="quick-install-btn" class="sub-util-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Install URL</span>
+        </button>
+        <span class="util-sep">|</span>
+        <button id="quick-reload-scripts-btn" class="sub-util-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+          <span>Reload Scripts</span>
+        </button>
+        <span class="util-sep">|</span>
+        <button id="emergency-killswitch-btn" class="sub-util-btn danger" title="Globally Pause All Userscripts">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span id="killswitch-text">Killswitch</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Native-style Action Sheet Modal for Script Options (Section 9) -->
+    <div id="options-sheet" class="sheet-scrim hidden">
+      <div class="sheet-card">
+        <div class="sheet-grabber"></div>
+        <div class="sheet-title-bar">
+          <div class="sheet-header-info">
+            <span id="sheet-script-title" class="sheet-title-text">Script Actions</span>
+            <span id="sheet-script-version" class="sheet-subtitle-text">v1.0.0</span>
+          </div>
+          <button id="sheet-close-btn" class="sheet-done-btn">Done</button>
+        </div>
+
+        <div class="sheet-options-list">
+          <button id="sheet-action-pause-5m" class="sheet-option-item">
+            <div class="option-icon">⏸</div>
+            <div class="option-text">
+              <span class="option-main">Pause for 5 Minutes</span>
+              <span class="option-sub">Temporarily suppress execution on this tab</span>
+            </div>
+          </button>
+          <button id="sheet-action-pause-1h" class="sheet-option-item">
+            <div class="option-icon">⏸</div>
+            <div class="option-text">
+              <span class="option-main">Pause for 1 Hour</span>
+              <span class="option-sub">Automatically re-enables after 60m</span>
+            </div>
+          </button>
+          <button id="sheet-action-resume" class="sheet-option-item highlight">
+            <div class="option-icon">▶</div>
+            <div class="option-text">
+              <span class="option-main">Resume Execution Now</span>
+              <span class="option-sub">Clear temporary suspension overrides</span>
+            </div>
+          </button>
+          <div class="sheet-sep"></div>
+          <button id="sheet-action-copy-name" class="sheet-option-item">
+            <div class="option-icon">📋</div>
+            <div class="option-text">
+              <span class="option-main">Copy Script Name</span>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
+
   </div>
 
   <script src="popup.js"></script>
