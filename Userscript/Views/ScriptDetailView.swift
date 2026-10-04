@@ -225,8 +225,7 @@ public struct ScriptDetailView: View {
                     Text("Overall Safety")
                     Spacer()
                     Text(overallRisk.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(.bold)
+                        .font(.system(.subheadline, design: .default).weight(.bold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(
@@ -253,8 +252,7 @@ public struct ScriptDetailView: View {
                                 .font(.headline)
                             Spacer()
                             Text(cap.riskLevel.rawValue)
-                                .font(.caption2)
-                                .fontWeight(.semibold)
+                                .font(.system(.caption2, design: .default).weight(.semibold))
                                 .foregroundColor(.secondary)
                         }
                         Text(cap.description)
@@ -304,8 +302,7 @@ public struct ScriptDetailView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Text("v\(item.version)")
-                                    .font(.headline)
-                                    .fontDesign(.monospaced)
+                                    .font(.system(.headline, design: .monospaced))
                                 Spacer()
                                 Text(item.timestamp, style: .date)
                                     .font(.caption)

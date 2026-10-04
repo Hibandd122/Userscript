@@ -10,6 +10,10 @@ public struct UserScript: Identifiable, Codable, Equatable, Hashable {
     public var enabled: Bool
     public var priority: Int
     public var favorite: Bool
+    public var isFavorite: Bool {
+        get { favorite }
+        set { favorite = newValue }
+    }
     public var tags: [String]
     public var content: String
     public var matches: [String]

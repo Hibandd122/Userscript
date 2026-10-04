@@ -15,7 +15,7 @@ public struct SettingsView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 Section("Safari Extension Setup") {
                     VStack(alignment: .leading, spacing: 10) {
@@ -155,7 +155,7 @@ public struct SettingsView: View {
             }
             .sheet(isPresented: $showingDiagnosticsSheet) {
                 if let report = diagnosticReport {
-                    NavigationStack {
+                    NavigationView {
                         ScrollView {
                             Text(report.formattedText)
                                 .font(.system(.caption, design: .monospaced))
@@ -180,10 +180,11 @@ public struct SettingsView: View {
                             }
                         }
                     }
+                    .navigationViewStyle(.stack)
                 }
             }
             .sheet(isPresented: $showingLogsSheet) {
-                NavigationStack {
+                NavigationView {
                     List {
                         if logManager.entries.isEmpty {
                             Text("No runtime logs recorded yet.")
@@ -193,8 +194,7 @@ public struct SettingsView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text("\(entry.level.emoji) [\(entry.subsystem.rawValue)]")
-                                            .font(.caption2)
-                                            .fontWeight(.bold)
+                                            .font(.system(.caption2, design: .default).weight(.bold))
                                         Spacer()
                                         Text(entry.timestamp, style: .time)
                                             .font(.caption2)
@@ -227,7 +227,9 @@ public struct SettingsView: View {
                         }
                     }
                 }
+                .navigationViewStyle(.stack)
             }
         }
+        .navigationViewStyle(.stack)
     }
 }

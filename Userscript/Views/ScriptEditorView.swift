@@ -24,7 +24,7 @@ public struct ScriptEditorView: View {
     }
 
     public var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // Search bar if toggled
                 if showingSearch {
@@ -103,19 +103,20 @@ public struct ScriptEditorView: View {
                             saveScript()
                             dismiss()
                         }
-                        .fontWeight(.bold)
+                        .font(.system(.body, weight: .bold))
                         .disabled(!hasChanges && !script.content.isEmpty)
                     }
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private func saveScript() {
         var updated = ScriptParser.parse(content: codeText, sourceUrl: script.sourceUrl)
         updated.id = script.id
         updated.enabled = script.enabled
-        updated.isFavorite = script.isFavorite
+        updated.favorite = script.favorite
         updated.priority = script.priority
         updated.tags = script.tags
         updated.createdAt = script.createdAt

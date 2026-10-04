@@ -57,10 +57,11 @@ public final class ScriptUpdater: ObservableObject {
             }
         }
 
+        let finalUpdates = updates
         await MainActor.run {
-            self.availableUpdates = updates
+            self.availableUpdates = finalUpdates
             self.isCheckingUpdates = false
-            self.updateStatusMessage = updates.isEmpty ? "All scripts up to date" : "\(updates.count) update(s) available"
+            self.updateStatusMessage = finalUpdates.isEmpty ? "All scripts up to date" : "\(finalUpdates.count) update(s) available"
         }
     }
 

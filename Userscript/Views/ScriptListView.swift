@@ -54,7 +54,7 @@ public struct ScriptListView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
+        NavigationView {
             VStack(spacing: 0) {
                 // Metric Stats Banner
                 if !manager.scripts.isEmpty {
@@ -181,6 +181,7 @@ public struct ScriptListView: View {
                 SettingsView()
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private var metricsBanner: some View {
@@ -213,8 +214,7 @@ public struct ScriptListView: View {
                 .foregroundColor(.secondary)
 
             Text("No Userscripts Installed")
-                .font(.title2)
-                .fontWeight(.bold)
+                .font(.system(.title2, design: .default).weight(.bold))
 
             Text("Install scripts from GreasyFork or create your own custom scripts to run in Safari.")
                 .font(.body)
@@ -227,7 +227,7 @@ public struct ScriptListView: View {
                     showingAddSheet = true
                 } label: {
                     Label("Install from URL", systemImage: "link")
-                        .fontWeight(.semibold)
+                        .font(.system(.body, design: .default).weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                 }
@@ -237,7 +237,7 @@ public struct ScriptListView: View {
                     showingNewEditorSheet = true
                 } label: {
                     Label("Create Script", systemImage: "plus")
-                        .fontWeight(.semibold)
+                        .font(.system(.body, design: .default).weight(.semibold))
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                 }
@@ -297,8 +297,7 @@ struct MetricCard: View {
                 .foregroundColor(color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(count)
-                    .font(.headline)
-                    .fontWeight(.bold)
+                    .font(.system(.headline, design: .default).weight(.bold))
                 Text(title)
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -341,8 +340,7 @@ struct ScriptRowView: View {
                         .lineLimit(1)
 
                     Text("v\(script.version)")
-                        .font(.caption2)
-                        .fontWeight(.medium)
+                        .font(.system(.caption2, design: .default).weight(.medium))
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.secondary.opacity(0.15))

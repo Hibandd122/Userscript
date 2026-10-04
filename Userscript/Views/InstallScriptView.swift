@@ -12,7 +12,7 @@ public struct InstallScriptView: View {
     public init() {}
 
     public var body: some View {
-        NavigationStack {
+        NavigationView {
             Form {
                 Section("Install from GreasyFork or URL") {
                     HStack {
@@ -53,7 +53,7 @@ public struct InstallScriptView: View {
                                     .padding(.horizontal, 16)
                             } else {
                                 Text("Inspect Script")
-                                    .fontWeight(.semibold)
+                                    .font(.system(.body, weight: .semibold))
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -75,7 +75,7 @@ public struct InstallScriptView: View {
                             Text("Name")
                             Spacer()
                             Text(script.name)
-                                .fontWeight(.medium)
+                                .font(.system(.body, weight: .medium))
                         }
 
                         HStack {
@@ -121,8 +121,7 @@ public struct InstallScriptView: View {
                             Text("Security Assessment")
                             Spacer()
                             Text(risk.rawValue)
-                                .font(.caption)
-                                .fontWeight(.bold)
+                                .font(.system(.caption, weight: .bold))
                                 .foregroundColor(risk == .safe ? .green : risk == .high ? .red : .orange)
                         }
 
@@ -174,6 +173,7 @@ public struct InstallScriptView: View {
                 }
             }
         }
+        .navigationViewStyle(.stack)
     }
 
     private func fetchScript() {
