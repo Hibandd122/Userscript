@@ -14,7 +14,7 @@ public struct ScriptEditorView: View {
 
     public init(script: UserScript) {
         _script = State(initialValue: script)
-        _codeText = State(initialValue: script.code)
+        _codeText = State(initialValue: script.content)
     }
 
     private var lineCount: Int {
@@ -149,7 +149,7 @@ public struct ScriptEditorView: View {
                 .font(.system(size: 13, design: .monospaced))
                 .padding(8)
                 .onChange(of: codeText) { newValue in
-                    hasChanges = (newValue != script.code)
+                    hasChanges = (newValue != script.content)
                 }
         }
     }
@@ -195,7 +195,7 @@ public struct ScriptEditorView: View {
     private func saveChanges() {
         USHaptics.success()
         var updated = script
-        updated.code = codeText
+        updated.content = codeText
         manager.add(script: updated)
         hasChanges = false
         showToast("Script saved successfully")

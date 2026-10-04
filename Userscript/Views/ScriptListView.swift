@@ -42,7 +42,7 @@ public struct ScriptListView: View {
             list = list.filter {
                 $0.name.localizedCaseInsensitiveContains(query) ||
                 $0.description.localizedCaseInsensitiveContains(query) ||
-                ($0.author?.localizedCaseInsensitiveContains(query) ?? false) ||
+                $0.author.localizedCaseInsensitiveContains(query) ||
                 $0.matches.contains(where: { $0.localizedCaseInsensitiveContains(query) })
             }
         }
@@ -346,7 +346,7 @@ public struct ScriptListView: View {
             matches: ["*://*/*"],
             grants: ["GM_log"],
             runAt: .documentEnd,
-            code: """
+            content: """
             // ==UserScript==
             // @name         New Custom Script
             // @namespace    https://userscript.app/

@@ -377,13 +377,7 @@ public struct USToast: View {
         }
         .padding(.horizontal, USSpacing.l)
         .padding(.vertical, USSpacing.m)
-        .background(
-            #if os(iOS)
-            Color(UIColor.secondarySystemBackground)
-            #else
-            Color(NSColor.windowBackgroundColor)
-            #endif
-        )
+        .background(USColor.secondarySurface)
         .cornerRadius(USRadius.xLarge)
         .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: 4)
     }

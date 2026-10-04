@@ -11,7 +11,7 @@ public struct UpdateCenterView: View {
     public init() {}
 
     private var updatableScripts: [UserScript] {
-        manager.scripts.filter { $0.updateURL != nil }
+        manager.scripts.filter { $0.updateUrl != nil }
     }
 
     public var body: some View {
@@ -118,10 +118,10 @@ public struct UpdateCenterView: View {
                         }
                     }
                     Spacer()
-                    USBadge(script.trustLevel.title, variant: script.trustLevel == .trusted ? .active : .neutral)
+                    USBadge(script.trustLevel.rawValue, variant: script.trustLevel == .trusted ? .active : .neutral)
                 }
 
-                if let updateURL = script.updateURL {
+                if let updateURL = script.updateUrl {
                     Text(updateURL)
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(.secondary)
@@ -279,7 +279,7 @@ public struct UpdateDiffView: View {
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.secondary)
             ScrollView(.horizontal, showsIndicators: true) {
-                Text(script.code)
+                Text(script.content)
                     .font(.system(size: 12, design: .monospaced))
                     .padding(USSpacing.m)
                     .background(USColor.secondarySurface)

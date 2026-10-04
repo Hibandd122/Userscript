@@ -82,7 +82,7 @@ public struct ScriptDetailView: View {
             }
         }
         .sheet(isPresented: $showingShareSheet) {
-            ShareSheet(activityItems: [script.code])
+            ShareSheet(activityItems: [script.content])
         }
         .onReceive(manager.$scripts) { updatedScripts in
             if let current = updatedScripts.first(where: { $0.id == script.id }) {
@@ -112,7 +112,7 @@ public struct ScriptDetailView: View {
                             .lineLimit(1)
                         HStack(spacing: 6) {
                             USBadge("v\(script.version)", variant: .info)
-                            USBadge(script.trustLevel.title, variant: script.trustLevel == .trusted ? .active : .neutral)
+                            USBadge(script.trustLevel.rawValue, variant: script.trustLevel == .trusted ? .active : .neutral)
                             if script.favorite {
                                 USBadge("Pinned", variant: .custom(USColor.purple, "Pinned"), icon: "pin.fill")
                             }
@@ -283,12 +283,12 @@ public struct ScriptDetailView: View {
             } else {
                 USCard {
                     VStack(spacing: USSpacing.m) {
-                        ForEach(script.configSchema) { item in
+                        ForEach(script.configSchema, id: \.key) { item in
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
+                                    Text(item.label)
                                         .font(.subheadline.bold())
-                                    Text(item.description)
+                                    Text(item.currentValue)
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
@@ -342,11 +342,11 @@ public struct ScriptDetailView: View {
             USSectionHeader("Runtime Diagnostics", subtitle: "Execution indicators for Safari")
 
             HStack(spacing: USSpacing.m) {
-                USMetric(title: "Executions", value: "\(script.statistics.executionCount)", icon: "play.circle.fill", color: USColor.safariBlue)
+                USMetric(title: "Executions", value: "\(script.statistics.timesExecuted)", icon: "play.circle.fill", color: USColor.safariBlue)
                 USMetric(title: "Failures", value: "\(script.statistics.failureCount)", icon: "exclamationmark.triangle.fill", color: script.statistics.failureCount > 0 ? USColor.error : USColor.neutral)
             }
 
-            if let lastRun = script.statistics.lastRunTime {
+            if let lastRun = script.statistics.lastRunAt {
                 USCard {
                     HStack {
                         Text("Last Execution")

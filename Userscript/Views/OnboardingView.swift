@@ -229,7 +229,7 @@ public struct OnboardingView: View {
     private func installSample() {
         isInstallingSample = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            self.manager.loadBundledScriptsIfNeeded()
+            self.manager.installDefaultScripts()
             self.isInstallingSample = false
             self.sampleInstalled = true
             USHaptics.success()
