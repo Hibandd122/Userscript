@@ -1,0 +1,481 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A9120BE4675643C4AA11B414 /* UserscriptApp.swift in Build */ = {isa = PBXBuildFile; fileRef = 9A7E6FA8D7D7475E827A0835 /* UserscriptApp.swift */; };
+		366E699FB67C432FAE4E1FED /* UserScript.swift in Build */ = {isa = PBXBuildFile; fileRef = 3EF125EEB2A5445FBC2C895D /* UserScript.swift */; };
+		C39843EF474C469283BC97AD /* ScriptParser.swift in Build */ = {isa = PBXBuildFile; fileRef = AC47F9AAC428453FB9A86EF0 /* ScriptParser.swift */; };
+		C14FB0931A624610A97C5AE4 /* ScriptManager.swift in Build */ = {isa = PBXBuildFile; fileRef = 0F4CFE61BF604C0AA73E9C22 /* ScriptManager.swift */; };
+		6CC0A731B3AC43A88CAF3039 /* ScriptDownloader.swift in Build */ = {isa = PBXBuildFile; fileRef = 8799F96168314E7EAE14C25E /* ScriptDownloader.swift */; };
+		5EE50CF402F047A28F6C004F /* ScriptListView.swift in Build */ = {isa = PBXBuildFile; fileRef = 759B5EE65E5F4492A5AAA8FC /* ScriptListView.swift */; };
+		241933E70C264BB7BE996A32 /* ScriptDetailView.swift in Build */ = {isa = PBXBuildFile; fileRef = 69B9375011304A009857310E /* ScriptDetailView.swift */; };
+		C6CD07555E5F459D8EC94030 /* ScriptEditorView.swift in Build */ = {isa = PBXBuildFile; fileRef = 7640275D7DB1442C818C9510 /* ScriptEditorView.swift */; };
+		D7FB2D5CB8134510AF94CACE /* InstallScriptView.swift in Build */ = {isa = PBXBuildFile; fileRef = FFD0228022A0439CA71C9653 /* InstallScriptView.swift */; };
+		AF011F4D84A743B996709AEA /* SettingsView.swift in Build */ = {isa = PBXBuildFile; fileRef = 7BECE30EC8654FCE821D41AD /* SettingsView.swift */; };
+		BBE4A17D7B87440DB24489A9 /* Assets.xcassets in Build */ = {isa = PBXBuildFile; fileRef = 775D7B13950F44D581C0DC69 /* Assets.xcassets */; };
+		F07A31BF67644801B96D74F3 /* SafariWebExtensionHandler.swift in Build */ = {isa = PBXBuildFile; fileRef = 6DDB2097989A4062A8F9861E /* SafariWebExtensionHandler.swift */; };
+		104A22BA438B438381E8D5FC /* manifest.json in Build */ = {isa = PBXBuildFile; fileRef = C46538AB41614E51851479F1 /* manifest.json */; };
+		2BE993A4FE064F40A5E96E5B /* background.js in Build */ = {isa = PBXBuildFile; fileRef = 6AD2F8E2A84D4B82A19222A9 /* background.js */; };
+		979FDA42B69341FAAD12C2F0 /* content.js in Build */ = {isa = PBXBuildFile; fileRef = CA875ABF9BD944FA8DBB9E50 /* content.js */; };
+		79A85A1DE65F4C288F0B1D43 /* gm-api.js in Build */ = {isa = PBXBuildFile; fileRef = 56F9CDE2A7874600B5733FCD /* gm-api.js */; };
+		6447320819F34912BA27985F /* matcher.js in Build */ = {isa = PBXBuildFile; fileRef = CB67B53B626A4B5887F69EF8 /* matcher.js */; };
+		2E140822AE054F52B4A63F1E /* popup.html in Build */ = {isa = PBXBuildFile; fileRef = B9AD88004A7141D7B99E01AB /* popup.html */; };
+		ED886B54F8C44D538CA8AE61 /* popup.css in Build */ = {isa = PBXBuildFile; fileRef = CF80E8A7348D471CBDBF8247 /* popup.css */; };
+		31E06FEB9C1B4A4289956C70 /* popup.js in Build */ = {isa = PBXBuildFile; fileRef = 8724A0D7EDD2433C92586DD4 /* popup.js */; };
+		5BF307228D244F7FB5AAF05F /* icon-48.png in Build */ = {isa = PBXBuildFile; fileRef = 851992730DD4463C8D9FFA9A /* icon-48.png */; };
+		C817F44885CE43469A7748E6 /* icon-96.png in Build */ = {isa = PBXBuildFile; fileRef = 2651184F37064DDF9EEDB932 /* icon-96.png */; };
+		9BEE0C436C4F458CA9B4248C /* icon-128.png in Build */ = {isa = PBXBuildFile; fileRef = DE52BE4522E14044AC06DFE8 /* icon-128.png */; };
+		10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		98A53A7A01BE4584B03A8F7C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB089EAF340A4D2EBF8CCF07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 16AAC3549106418A983A7EFC;
+			remoteInfo = UserscriptExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E3F75F30148B425EB55C2FE1 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		9A7E6FA8D7D7475E827A0835 /* UserscriptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/App/UserscriptApp.swift"; sourceTree = "<group>"; };
+		3EF125EEB2A5445FBC2C895D /* UserScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/UserScript.swift"; sourceTree = "<group>"; };
+		AC47F9AAC428453FB9A86EF0 /* ScriptParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/ScriptParser.swift"; sourceTree = "<group>"; };
+		0F4CFE61BF604C0AA73E9C22 /* ScriptManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/ScriptManager.swift"; sourceTree = "<group>"; };
+		8799F96168314E7EAE14C25E /* ScriptDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Services/ScriptDownloader.swift"; sourceTree = "<group>"; };
+		759B5EE65E5F4492A5AAA8FC /* ScriptListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptListView.swift"; sourceTree = "<group>"; };
+		69B9375011304A009857310E /* ScriptDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptDetailView.swift"; sourceTree = "<group>"; };
+		7640275D7DB1442C818C9510 /* ScriptEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptEditorView.swift"; sourceTree = "<group>"; };
+		FFD0228022A0439CA71C9653 /* InstallScriptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/InstallScriptView.swift"; sourceTree = "<group>"; };
+		7BECE30EC8654FCE821D41AD /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/SettingsView.swift"; sourceTree = "<group>"; };
+		775D7B13950F44D581C0DC69 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Userscript/Resources/Assets.xcassets"; sourceTree = "<group>"; };
+		61CB7A3F61B448FBA73F2777 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Userscript/Resources/Info.plist"; sourceTree = "<group>"; };
+		95810833183543DB9A055DEB /* Userscript.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Userscript/Resources/Userscript.entitlements"; sourceTree = "<group>"; };
+		6DDB2097989A4062A8F9861E /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UserscriptExtension/SafariWebExtensionHandler.swift"; sourceTree = "<group>"; };
+		2126CA1A50FD4AE09DDFF94D /* ExtInfo.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "UserscriptExtension/Info.plist"; sourceTree = "<group>"; };
+		12FC3ED2E05A451A9BCD33EC /* UserscriptExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "UserscriptExtension/UserscriptExtension.entitlements"; sourceTree = "<group>"; };
+		C46538AB41614E51851479F1 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "UserscriptExtension/Resources/manifest.json"; sourceTree = "<group>"; };
+		6AD2F8E2A84D4B82A19222A9 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/background.js"; sourceTree = "<group>"; };
+		CA875ABF9BD944FA8DBB9E50 /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/content.js"; sourceTree = "<group>"; };
+		56F9CDE2A7874600B5733FCD /* gm-api.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/gm-api.js"; sourceTree = "<group>"; };
+		CB67B53B626A4B5887F69EF8 /* matcher.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/matcher.js"; sourceTree = "<group>"; };
+		B9AD88004A7141D7B99E01AB /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "UserscriptExtension/Resources/popup.html"; sourceTree = "<group>"; };
+		CF80E8A7348D471CBDBF8247 /* popup.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = "UserscriptExtension/Resources/popup.css"; sourceTree = "<group>"; };
+		8724A0D7EDD2433C92586DD4 /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/popup.js"; sourceTree = "<group>"; };
+		851992730DD4463C8D9FFA9A /* icon-48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-48.png"; sourceTree = "<group>"; };
+		2651184F37064DDF9EEDB932 /* icon-96.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-96.png"; sourceTree = "<group>"; };
+		DE52BE4522E14044AC06DFE8 /* icon-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UserscriptExtension/Resources/icons/icon-128.png"; sourceTree = "<group>"; };
+		C7BFF12E1FDC4B00BFA80123 /* Userscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Userscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UserscriptExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		65BC9E1873FE43CA8B78D97C = {
+			isa = PBXGroup;
+			children = (
+				C19BAF91F1B1458C9E9BD328 /* Userscript */,
+				63038218469341B49501C4C4 /* UserscriptExtension */,
+				B869717FF7FE4D468EB778B1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B869717FF7FE4D468EB778B1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C7BFF12E1FDC4B00BFA80123 /* Userscript.app */,
+				D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C19BAF91F1B1458C9E9BD328 /* Userscript */ = {
+			isa = PBXGroup;
+			children = (
+				9A7E6FA8D7D7475E827A0835 /* UserscriptApp.swift */,
+				3EF125EEB2A5445FBC2C895D /* UserScript.swift */,
+				AC47F9AAC428453FB9A86EF0 /* ScriptParser.swift */,
+				0F4CFE61BF604C0AA73E9C22 /* ScriptManager.swift */,
+				8799F96168314E7EAE14C25E /* ScriptDownloader.swift */,
+				759B5EE65E5F4492A5AAA8FC /* ScriptListView.swift */,
+				69B9375011304A009857310E /* ScriptDetailView.swift */,
+				7640275D7DB1442C818C9510 /* ScriptEditorView.swift */,
+				FFD0228022A0439CA71C9653 /* InstallScriptView.swift */,
+				7BECE30EC8654FCE821D41AD /* SettingsView.swift */,
+				775D7B13950F44D581C0DC69 /* Assets.xcassets */,
+				61CB7A3F61B448FBA73F2777 /* Info.plist */,
+				95810833183543DB9A055DEB /* Userscript.entitlements */,
+			);
+			path = Userscript;
+			sourceTree = "<group>";
+		};
+		63038218469341B49501C4C4 /* UserscriptExtension */ = {
+			isa = PBXGroup;
+			children = (
+				6DDB2097989A4062A8F9861E /* SafariWebExtensionHandler.swift */,
+				2126CA1A50FD4AE09DDFF94D /* ExtInfo.plist */,
+				12FC3ED2E05A451A9BCD33EC /* UserscriptExtension.entitlements */,
+				C46538AB41614E51851479F1 /* manifest.json */,
+				6AD2F8E2A84D4B82A19222A9 /* background.js */,
+				CA875ABF9BD944FA8DBB9E50 /* content.js */,
+				56F9CDE2A7874600B5733FCD /* gm-api.js */,
+				CB67B53B626A4B5887F69EF8 /* matcher.js */,
+				B9AD88004A7141D7B99E01AB /* popup.html */,
+				CF80E8A7348D471CBDBF8247 /* popup.css */,
+				8724A0D7EDD2433C92586DD4 /* popup.js */,
+				851992730DD4463C8D9FFA9A /* icon-48.png */,
+				2651184F37064DDF9EEDB932 /* icon-96.png */,
+				DE52BE4522E14044AC06DFE8 /* icon-128.png */,
+			);
+			path = UserscriptExtension;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C59FF25C654C4C2FAFDE33CD /* Userscript */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 060C8877651C4933A992FBC1 /* Build configuration list for PBXNativeTarget "Userscript" */;
+			buildPhases = (
+				7C202E76F4AF49D583E23047 /* Sources */,
+				B464369831414314BEB425C2 /* Resources */,
+				E3F75F30148B425EB55C2FE1 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				41182EFB934A41028463EBCA /* PBXTargetDependency */,
+			);
+			name = Userscript;
+			productName = Userscript;
+			productReference = C7BFF12E1FDC4B00BFA80123 /* Userscript.app */;
+			productType = "com.apple.product-type.application";
+		};
+		16AAC3549106418A983A7EFC /* UserscriptExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E2B8E26CACCF4A68B87023DB /* Build configuration list for PBXNativeTarget "UserscriptExtension" */;
+			buildPhases = (
+				8F22876494024A97B65B9CE9 /* Sources */,
+				873DDD5AB2A3443785CAF89E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = UserscriptExtension;
+			productName = UserscriptExtension;
+			productReference = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DB089EAF340A4D2EBF8CCF07 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					C59FF25C654C4C2FAFDE33CD = {
+						CreatedOnToolsPrompt = 1;
+					};
+					16AAC3549106418A983A7EFC = {
+						CreatedOnToolsPrompt = 1;
+					};
+				};
+			};
+			buildConfigurationList = C691D06FE9584130BA92CA01 /* Build configuration list for PBXProject "Userscript" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 65BC9E1873FE43CA8B78D97C;
+			productRefGroup = B869717FF7FE4D468EB778B1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C59FF25C654C4C2FAFDE33CD /* Userscript */,
+				16AAC3549106418A983A7EFC /* UserscriptExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B464369831414314BEB425C2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBE4A17D7B87440DB24489A9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		873DDD5AB2A3443785CAF89E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				104A22BA438B438381E8D5FC /* manifest.json in Resources */,
+				2BE993A4FE064F40A5E96E5B /* background.js in Resources */,
+				979FDA42B69341FAAD12C2F0 /* content.js in Resources */,
+				79A85A1DE65F4C288F0B1D43 /* gm-api.js in Resources */,
+				6447320819F34912BA27985F /* matcher.js in Resources */,
+				2E140822AE054F52B4A63F1E /* popup.html in Resources */,
+				ED886B54F8C44D538CA8AE61 /* popup.css in Resources */,
+				31E06FEB9C1B4A4289956C70 /* popup.js in Resources */,
+				5BF307228D244F7FB5AAF05F /* icon-48.png in Resources */,
+				C817F44885CE43469A7748E6 /* icon-96.png in Resources */,
+				9BEE0C436C4F458CA9B4248C /* icon-128.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7C202E76F4AF49D583E23047 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9120BE4675643C4AA11B414 /* UserscriptApp.swift in Sources */,
+				366E699FB67C432FAE4E1FED /* UserScript.swift in Sources */,
+				C39843EF474C469283BC97AD /* ScriptParser.swift in Sources */,
+				C14FB0931A624610A97C5AE4 /* ScriptManager.swift in Sources */,
+				6CC0A731B3AC43A88CAF3039 /* ScriptDownloader.swift in Sources */,
+				5EE50CF402F047A28F6C004F /* ScriptListView.swift in Sources */,
+				241933E70C264BB7BE996A32 /* ScriptDetailView.swift in Sources */,
+				C6CD07555E5F459D8EC94030 /* ScriptEditorView.swift in Sources */,
+				D7FB2D5CB8134510AF94CACE /* InstallScriptView.swift in Sources */,
+				AF011F4D84A743B996709AEA /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F22876494024A97B65B9CE9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F07A31BF67644801B96D74F3 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		41182EFB934A41028463EBCA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 16AAC3549106418A983A7EFC /* UserscriptExtension */;
+			targetProxy = 98A53A7A01BE4584B03A8F7C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F6ECF365DB54A25941107EE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		98894DDBA40647D1B66B423C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_NO_COMMON_BLOCKS = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = "wholemodule";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E677D5D804D24DC8A7B12B46 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Userscript/Resources/Userscript.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Userscript/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Userscript;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.userscript.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CC31B15BE1074DB080F5FD3F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Userscript/Resources/Userscript.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Userscript/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Userscript;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.userscript.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		66FC215CEA154DB2BB252001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = UserscriptExtension/UserscriptExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = UserscriptExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.userscript.app.extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		391E80266BD943DDAF0131BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = UserscriptExtension/UserscriptExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = UserscriptExtension/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.userscript.app.extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C691D06FE9584130BA92CA01 /* Build configuration list for PBXProject "Userscript" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F6ECF365DB54A25941107EE /* Debug */,
+				98894DDBA40647D1B66B423C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		060C8877651C4933A992FBC1 /* Build configuration list for PBXNativeTarget "Userscript" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E677D5D804D24DC8A7B12B46 /* Debug */,
+				CC31B15BE1074DB080F5FD3F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E2B8E26CACCF4A68B87023DB /* Build configuration list for PBXNativeTarget "UserscriptExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				66FC215CEA154DB2BB252001 /* Debug */,
+				391E80266BD943DDAF0131BB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = DB089EAF340A4D2EBF8CCF07 /* Project object */;
+}

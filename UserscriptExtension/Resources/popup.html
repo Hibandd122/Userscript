@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Userscript</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="title-container">
+      <span class="logo">⚡</span>
+      <span class="title">Userscript</span>
+    </div>
+    <span id="badge" class="badge">0</span>
+  </div>
+
+  <div class="current-site">
+    <span class="site-label">Site:</span>
+    <span id="current-url" class="site-url">Loading...</span>
+  </div>
+
+  <div class="scripts-section">
+    <div class="section-title">Active Scripts on Page</div>
+    <div id="script-list" class="script-list">
+      <div class="empty">No scripts active on this tab</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="#" id="open-app-btn" class="open-btn">Open Userscript Manager</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
