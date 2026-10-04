@@ -1,30 +1,44 @@
-// 🍎 Safari Userscript Extension Popup Controller 2.0 (Section 20, 21)
+// 🍎 Userscript Safari Extension: Native Controller (Stay Standard)
 document.addEventListener("DOMContentLoaded", function() {
   var domainEl = document.getElementById("current-domain");
-  var statsEl = document.getElementById("stats-summary");
+  var domainStatusEl = document.getElementById("domain-status");
+  var siteToggle = document.getElementById("site-master-toggle");
   var listEl = document.getElementById("script-list");
-  var badgeEl = document.getElementById("badge");
-  var countTagEl = document.getElementById("script-count-label");
-  var reloadBtn = document.getElementById("reload-tab-btn");
-  var blockDomainBtn = document.getElementById("block-domain-btn");
-  var blockBtnText = document.getElementById("block-btn-text");
+  var matchBadgeEl = document.getElementById("match-badge");
   var emergencyBtn = document.getElementById("emergency-btn");
-  var emergencyLabel = document.getElementById("emergency-label");
-  var openBtn = document.getElementById("open-app-btn");
+  var reloadBtn = document.getElementById("reload-tab-btn");
+  var openAppBtn = document.getElementById("open-app-btn");
+  var addScriptBtn = document.getElementById("add-script-btn");
+
+  // Sheet Elements
+  var sheetBackdrop = document.getElementById("options-sheet");
+  var sheetTitle = document.getElementById("sheet-script-title");
+  var sheetCloseBtn = document.getElementById("sheet-close-btn");
+  var sheetPause5m = document.getElementById("sheet-pause-5m");
+  var sheetPause1h = document.getElementById("sheet-pause-1h");
+  var sheetResumeNow = document.getElementById("sheet-resume-now");
 
   var currentHost = "";
   var currentUrl = "";
-  var isSiteBlocked = false;
+  var activeScriptTargetId = null;
 
-  // Open native app
-  if (openBtn) {
-    openBtn.addEventListener("click", function(e) {
+  // Open full app
+  if (openAppBtn) {
+    openAppBtn.addEventListener("click", function(e) {
       e.preventDefault();
       window.open("userscript://", "_blank");
     });
   }
 
-  // Reload current active tab
+  // Create new script
+  if (addScriptBtn) {
+    addScriptBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      window.open("userscript://install", "_blank");
+    });
+  }
+
+  // Reload current tab
   if (reloadBtn) {
     reloadBtn.addEventListener("click", function() {
       chrome.runtime.sendMessage({ action: "reloadTab" });
@@ -32,7 +46,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // Emergency Global Killswitch
+  // Global Killswitch Toggle
   if (emergencyBtn) {
     emergencyBtn.addEventListener("click", function() {
       chrome.runtime.sendMessage({ action: "toggleEmergencyDisable" }, function() {
@@ -41,200 +55,256 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // Block / Unblock domain toggle
-  if (blockDomainBtn) {
-    blockDomainBtn.addEventListener("click", function() {
+  // Master Website Toggle (One-tap allow/block for current domain)
+  if (siteToggle) {
+    siteToggle.addEventListener("change", function() {
       if (!currentHost) return;
-      var newAction = isSiteBlocked ? "Allow" : "Block";
-      var promptMsg = isSiteBlocked 
-        ? "Re-enable userscripts for " + currentHost + "?" 
-        : "Disable all userscripts on " + currentHost + "?";
-      
-      if (confirm(promptMsg)) {
-        chrome.runtime.sendMessage({ 
-          action: "toggleDomainRule", 
-          payload: { domain: currentHost, ruleAction: newAction } 
-        }, function() {
-          chrome.runtime.sendMessage({ action: "reloadTab" });
-          window.close();
-        });
-      }
+      var shouldAllow = siteToggle.checked;
+      var ruleAction = shouldAllow ? "Allow" : "Block";
+
+      chrome.runtime.sendMessage({
+        action: "toggleDomainRule",
+        payload: { domain: currentHost, ruleAction: ruleAction }
+      }, function() {
+        domainStatusEl.textContent = shouldAllow ? "Scripts enabled on this site" : "Blocked on this site";
+        chrome.runtime.sendMessage({ action: "reloadTab" });
+        setTimeout(function() {
+          refreshView();
+        }, 200);
+      });
     });
   }
 
+  // Sheet Controls
+  function openSheet(scriptId, scriptName) {
+    activeScriptTargetId = scriptId;
+    sheetTitle.textContent = scriptName || "Script Options";
+    sheetBackdrop.classList.remove("hidden");
+  }
+
+  function closeSheet() {
+    activeScriptTargetId = null;
+    sheetBackdrop.classList.add("hidden");
+  }
+
+  if (sheetCloseBtn) sheetCloseBtn.addEventListener("click", closeSheet);
+  if (sheetBackdrop) {
+    sheetBackdrop.addEventListener("click", function(e) {
+      if (e.target === sheetBackdrop) closeSheet();
+    });
+  }
+
+  if (sheetPause5m) {
+    sheetPause5m.addEventListener("click", function() {
+      if (!activeScriptTargetId) return;
+      chrome.runtime.sendMessage({
+        action: "setTemporaryOverride",
+        payload: { scriptId: activeScriptTargetId, enable: false, durationMinutes: 5 }
+      }, function() {
+        closeSheet();
+        refreshView();
+        chrome.runtime.sendMessage({ action: "reloadTab" });
+      });
+    });
+  }
+
+  if (sheetPause1h) {
+    sheetPause1h.addEventListener("click", function() {
+      if (!activeScriptTargetId) return;
+      chrome.runtime.sendMessage({
+        action: "setTemporaryOverride",
+        payload: { scriptId: activeScriptTargetId, enable: false, durationMinutes: 60 }
+      }, function() {
+        closeSheet();
+        refreshView();
+        chrome.runtime.sendMessage({ action: "reloadTab" });
+      });
+    });
+  }
+
+  if (sheetResumeNow) {
+    sheetResumeNow.addEventListener("click", function() {
+      if (!activeScriptTargetId) return;
+      chrome.runtime.sendMessage({
+        action: "setTemporaryOverride",
+        payload: { scriptId: activeScriptTargetId, enable: true }
+      }, function() {
+        closeSheet();
+        refreshView();
+        chrome.runtime.sendMessage({ action: "reloadTab" });
+      });
+    });
+  }
+
+  // Main Render View
   function refreshView() {
-    if (chrome.tabs && chrome.tabs.query) {
-      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-        if (tabs && tabs[0] && tabs[0].url) {
-          currentUrl = tabs[0].url;
-          try {
-            var parsed = new URL(currentUrl);
-            currentHost = parsed.hostname || currentUrl;
-          } catch (e) {
-            currentHost = currentUrl;
-          }
-          domainEl.textContent = currentHost;
+    if (!chrome.tabs || !chrome.tabs.query) return;
 
-          chrome.runtime.sendMessage({ action: "getMatchingScripts", url: currentUrl }, function(response) {
-            if (!response) {
-              listEl.innerHTML = '<div class="empty-state"><p>Connecting to Safari extension runtime...</p></div>';
-              return;
-            }
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+      if (!tabs || !tabs[0] || !tabs[0].url) {
+        domainEl.textContent = "Safari Tab";
+        domainStatusEl.textContent = "No website loaded";
+        return;
+      }
 
-            // Check Emergency Killswitch State
-            if (response.emergencyDisabled) {
-              emergencyBtn.classList.add("active");
-              emergencyLabel.textContent = "STOPPED";
-              badgeEl.textContent = "OFF";
-              badgeEl.style.background = "var(--error)";
-              statsEl.textContent = "Emergency Killswitch active";
-              listEl.innerHTML = '<div class="empty-state"><p style="color:var(--error); font-weight:600;">Global Killswitch Active<br>All script execution is disabled.</p></div>';
-              countTagEl.textContent = "0 Active";
-              return;
-            } else {
-              emergencyBtn.classList.remove("active");
-              emergencyLabel.textContent = "Killswitch";
-              badgeEl.style.background = "var(--accent)";
-            }
+      currentUrl = tabs[0].url;
+      try {
+        var parsed = new URL(currentUrl);
+        currentHost = parsed.hostname || currentUrl;
+      } catch (e) {
+        currentHost = currentUrl;
+      }
 
-            var scripts = (response.payload && response.payload.scripts) || response.scripts || [];
-            var tempOverrides = (response.payload && response.payload.temporaryOverrides) || response.temporaryOverrides || {};
-            var domainRules = (response.payload && response.payload.domainRules) || response.domainRules || [];
+      domainEl.textContent = currentHost;
 
-            // Check if current host is explicitly blocked
-            isSiteBlocked = domainRules.some(function(r) {
-              return r.domain === currentHost && r.action === "Block";
-            });
+      chrome.runtime.sendMessage({ action: "getMatchingScripts", url: currentUrl }, function(response) {
+        if (!response) {
+          listEl.innerHTML = '<div class="empty-box"><span class="empty-headline">Connecting...</span></div>';
+          return;
+        }
 
-            if (blockBtnText) {
-              blockBtnText.textContent = isSiteBlocked ? "Allow on Site" : "Disable on Site";
-              if (isSiteBlocked) {
-                blockDomainBtn.classList.remove("danger");
-              } else {
-                blockDomainBtn.classList.add("danger");
-              }
-            }
+        // 1. Check Global Killswitch
+        if (response.emergencyDisabled) {
+          emergencyBtn.classList.add("killswitch-active");
+          emergencyBtn.title = "Emergency Killswitch Active - Tap to Resume";
+          domainStatusEl.textContent = "All scripts globally paused";
+          siteToggle.checked = false;
+          siteToggle.disabled = true;
+          matchBadgeEl.textContent = "OFF";
 
-            var runningCount = scripts.filter(function(s) {
-              var sId = s.id || s.name;
-              return tempOverrides[sId] !== false;
-            }).length;
+          listEl.innerHTML = 
+            '<div class="empty-box">' +
+              '<div class="empty-icon-wrap" style="color:var(--apple-red);">' +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' +
+              '</div>' +
+              '<span class="empty-headline">Killswitch Active</span>' +
+              '<span class="empty-caption">Userscript is currently disabled across all websites.</span>' +
+            '</div>';
+          return;
+        } else {
+          emergencyBtn.classList.remove("killswitch-active");
+          emergencyBtn.title = "Pause All Scripts";
+          siteToggle.disabled = false;
+        }
 
-            badgeEl.textContent = String(runningCount);
-            countTagEl.textContent = runningCount + " of " + scripts.length + " Active";
-            statsEl.textContent = scripts.length + " matched • " + runningCount + " running";
+        var scripts = (response.payload && response.payload.scripts) || response.scripts || [];
+        var tempOverrides = (response.payload && response.payload.temporaryOverrides) || response.temporaryOverrides || {};
+        var domainRules = (response.payload && response.payload.domainRules) || response.domainRules || [];
 
-            if (scripts.length === 0) {
-              listEl.innerHTML = '<div class="empty-state"><p>No scripts matched this website</p></div>';
-              return;
-            }
+        // 2. Check Domain Rule Block
+        var isSiteBlocked = domainRules.some(function(r) {
+          return r.domain === currentHost && r.action === "Block";
+        });
 
-            listEl.innerHTML = "";
-            scripts.forEach(function(s) {
-              var sId = s.id || s.name;
-              var isPaused = tempOverrides[sId] === false;
+        siteToggle.checked = !isSiteBlocked;
+        domainStatusEl.textContent = isSiteBlocked 
+          ? "Disabled on this website" 
+          : (scripts.length > 0 ? (scripts.length + " scripts available") : "Ready for scripts");
 
-              var card = document.createElement("div");
-              card.className = "script-card";
+        matchBadgeEl.textContent = String(scripts.length);
 
-              var mainRow = document.createElement("div");
-              mainRow.className = "script-main";
+        // 3. Render Script Inset Grouped Rows
+        if (scripts.length === 0) {
+          listEl.innerHTML = 
+            '<div class="empty-box">' +
+              '<div class="empty-icon-wrap">' +
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
+              '</div>' +
+              '<span class="empty-headline">No Scripts Installed</span>' +
+              '<span class="empty-caption">No userscripts currently match ' + currentHost + '</span>' +
+            '</div>';
+          return;
+        }
 
-              var infoCol = document.createElement("div");
-              infoCol.className = "script-info";
+        listEl.innerHTML = "";
+        scripts.forEach(function(s) {
+          var sId = s.id || s.name;
+          var isTemporarilyPaused = tempOverrides[sId] === false;
+          var isGloballyEnabled = (s.enabled !== false);
+          var isActive = isGloballyEnabled && !isTemporarilyPaused && !isSiteBlocked;
 
-              var title = document.createElement("div");
-              title.className = "script-title";
-              title.textContent = s.name || "Untitled Script";
+          var row = document.createElement("div");
+          row.className = "script-row";
 
-              var meta = document.createElement("div");
-              meta.className = "script-meta";
-              meta.textContent = "v" + (s.version || "1.0.0") + (s.author ? " • " + s.author : "");
+          // Monogram Glyph (First letter or ⚡)
+          var firstLetter = (s.name && s.name.trim().length > 0) ? s.name.trim().charAt(0).toUpperCase() : "U";
+          var glyph = document.createElement("div");
+          glyph.className = "script-glyph";
+          glyph.textContent = firstLetter;
 
-              infoCol.appendChild(title);
-              infoCol.appendChild(meta);
+          // Meta Column
+          var metaCol = document.createElement("div");
+          metaCol.className = "script-meta-col";
+          metaCol.addEventListener("click", function() {
+            openSheet(sId, s.name);
+          });
 
-              // iOS Switch Toggle
-              var toggleLabel = document.createElement("label");
-              toggleLabel.className = "ios-toggle";
-              var toggleInput = document.createElement("input");
-              toggleInput.type = "checkbox";
-              toggleInput.checked = !isPaused;
-              var toggleSlider = document.createElement("span");
-              toggleSlider.className = "toggle-slider";
+          var nameText = document.createElement("div");
+          nameText.className = "script-name-text";
+          nameText.textContent = s.name || "Untitled Script";
 
-              toggleInput.addEventListener("change", function() {
-                var enable = toggleInput.checked;
-                chrome.runtime.sendMessage({ 
-                  action: "setTemporaryOverride", 
-                  payload: { scriptId: sId, enable: enable } 
-                }, function() {
-                  refreshView();
-                });
-              });
+          var detailText = document.createElement("div");
+          detailText.className = "script-detail-text";
+          detailText.textContent = "v" + (s.version || "1.0.0") + (isTemporarilyPaused ? " • Paused" : (isActive ? " • Running" : " • Off"));
 
-              toggleLabel.appendChild(toggleInput);
-              toggleLabel.appendChild(toggleSlider);
+          metaCol.appendChild(nameText);
+          metaCol.appendChild(detailText);
 
-              mainRow.appendChild(infoCol);
-              mainRow.appendChild(toggleLabel);
-              card.appendChild(mainRow);
+          // Controls Column
+          var controlsCol = document.createElement("div");
+          controlsCol.className = "script-controls-col";
 
-              // Quick control micro-actions
-              var subActions = document.createElement("div");
-              subActions.className = "script-subactions";
+          // Options Button
+          var moreBtn = document.createElement("button");
+          moreBtn.className = "more-opt-btn";
+          moreBtn.title = "Script Options";
+          moreBtn.innerHTML = 
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">' +
+              '<circle cx="12" cy="12" r="2"></circle>' +
+              '<circle cx="12" cy="5" r="2"></circle>' +
+              '<circle cx="12" cy="19" r="2"></circle>' +
+            '</svg>';
+          moreBtn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            openSheet(sId, s.name);
+          });
 
-              if (isPaused) {
-                var resumeBtn = document.createElement("button");
-                resumeBtn.className = "quick-ctrl-btn resume";
-                resumeBtn.textContent = "▶ Resume";
-                resumeBtn.addEventListener("click", function() {
-                  chrome.runtime.sendMessage({ 
-                    action: "setTemporaryOverride", 
-                    payload: { scriptId: sId, enable: true } 
-                  }, function() {
-                    refreshView();
-                  });
-                });
-                subActions.appendChild(resumeBtn);
-              } else {
-                var btn5m = document.createElement("button");
-                btn5m.className = "quick-ctrl-btn";
-                btn5m.textContent = "⏸ 5m";
-                btn5m.addEventListener("click", function() {
-                  chrome.runtime.sendMessage({ 
-                    action: "setTemporaryOverride", 
-                    payload: { scriptId: sId, enable: false, durationMinutes: 5 } 
-                  }, function() {
-                    refreshView();
-                  });
-                });
+          // iOS Switch Control
+          var switchLabel = document.createElement("label");
+          switchLabel.className = "switch-control";
+          var switchInput = document.createElement("input");
+          switchInput.type = "checkbox";
+          switchInput.checked = isActive;
 
-                var btn1h = document.createElement("button");
-                btn1h.className = "quick-ctrl-btn";
-                btn1h.textContent = "⏸ 1h";
-                btn1h.addEventListener("click", function() {
-                  chrome.runtime.sendMessage({ 
-                    action: "setTemporaryOverride", 
-                    payload: { scriptId: sId, enable: false, durationMinutes: 60 } 
-                  }, function() {
-                    refreshView();
-                  });
-                });
-
-                subActions.appendChild(btn5m);
-                subActions.appendChild(btn1h);
-              }
-
-              card.appendChild(subActions);
-              listEl.appendChild(card);
+          switchInput.addEventListener("change", function(e) {
+            e.stopPropagation();
+            var targetEnable = switchInput.checked;
+            chrome.runtime.sendMessage({
+              action: "setTemporaryOverride",
+              payload: { scriptId: sId, enable: targetEnable }
+            }, function() {
+              refreshView();
+              chrome.runtime.sendMessage({ action: "reloadTab" });
             });
           });
-        } else {
-          domainEl.textContent = "Safari Tab";
-        }
+
+          var switchTrack = document.createElement("span");
+          switchTrack.className = "switch-track";
+
+          switchLabel.appendChild(switchInput);
+          switchLabel.appendChild(switchTrack);
+
+          controlsCol.appendChild(moreBtn);
+          controlsCol.appendChild(switchLabel);
+
+          row.appendChild(glyph);
+          row.appendChild(metaCol);
+          row.appendChild(controlsCol);
+
+          listEl.appendChild(row);
+        });
       });
-    }
+    });
   }
 
   refreshView();
