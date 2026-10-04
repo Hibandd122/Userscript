@@ -3,7 +3,8 @@
 > A blazing-fast, pure, open-source **Userscript Manager** for Safari on iOS 15+.
 > Built with SwiftUI & Safari Web Extension. Completely free of ads, tracking, bloatware, and paywalls.
 
-[![Build Userscript IPA](https://github.com/USER/Userscript/actions/workflows/build.yml/badge.svg)](https://github.com/USER/Userscript/actions/workflows/build.yml)
+[![Build Userscript IPA](https://github.com/Hibandd122/Userscript/actions/workflows/build.yml/badge.svg)](https://github.com/Hibandd122/Userscript/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/Hibandd122/Userscript?color=blue)](https://github.com/Hibandd122/Userscript/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-iOS%2015.0%2B-blue.svg)](https://apple.com)
 [![Swift](https://img.shields.io/badge/Swift-5.0-orange.svg)](https://swift.org)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
