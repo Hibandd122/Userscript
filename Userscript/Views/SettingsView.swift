@@ -5,267 +5,197 @@ public struct SettingsView: View {
     @ObservedObject var logManager = LogManager.shared
     @State private var showingExportShare = false
     @State private var exportData: Data? = nil
-    @State private var showingClearAlert = false
-    @State private var diagnosticReport: DiagnosticReport? = nil
+    @State private var showingCleanupSheet = false
     @State private var showingDiagnosticsSheet = false
     @State private var showingLogsSheet = false
-    @State private var copiedDiagnostic = false
-    @State private var showingRestorePicker = false
-    @State private var restoreStatusMessage: String? = nil
-    @Environment(\.dismiss) private var dismiss
+    @State private var showingPrivacySheet = false
 
     public init() {}
 
     public var body: some View {
         NavigationView {
             List {
-                Section("Safari Extension Setup") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "safari.fill")
-                                .font(.title2)
-                                .foregroundColor(.accentColor)
-                            Text("How to Enable Extension")
-                                .font(.headline)
-                        }
+                // Section: Emergency & Operational Mode
+                Section("Operational State") {
+                    Toggle("Emergency Killswitch", isOn: Binding(
+                        get: { manager.appConfig.emergencyDisableAll },
+                        set: { _ in manager.toggleEmergencyDisable() }
+                    ))
+                    .tint(.red)
 
-                        Text("1. Open iOS **Settings** app\n2. Scroll down and tap **Safari**\n3. Tap **Extensions**\n4. Enable **Userscript**\n5. Set permissions to **Allow on All Websites**")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    Toggle("Userscript Safe Mode", isOn: Binding(
+                        get: { manager.appConfig.safeMode },
+                        set: { manager.appConfig.safeMode = $0; manager.saveAppConfig() }
+                    ))
+
+                    if manager.appConfig.safeMode {
+                        Picker("Safe Mode Policy", selection: Binding(
+                            get: { manager.appConfig.safeModeOption },
+                            set: { manager.appConfig.safeModeOption = $0; manager.saveAppConfig() }
+                        )) {
+                            ForEach(AppConfig.SafeModeOption.allCases, id: \.self) { opt in
+                                Text(opt.rawValue).tag(opt)
+                            }
+                        }
                     }
-                    .padding(.vertical, 6)
+
+                    Picker("Performance Profile", selection: Binding(
+                        get: { manager.appConfig.performanceMode },
+                        set: { manager.appConfig.performanceMode = $0; manager.saveAppConfig() }
+                    )) {
+                        ForEach(AppConfig.PerformanceMode.allCases, id: \.self) { p in
+                            Text(p.rawValue).tag(p)
+                        }
+                    }
                 }
 
-                Section("Storage Architecture & Health") {
-                    let health = StorageManager.shared.checkHealth()
+                // Section: Feature Flags (Phase 54)
+                Section("Experimental Feature Flags") {
+                    Toggle("SPA Navigation Detection", isOn: Binding(
+                        get: { manager.appConfig.featureFlags.spaNavigation },
+                        set: { manager.appConfig.featureFlags.spaNavigation = $0; manager.saveAppConfig() }
+                    ))
+                    Toggle("Automatic Script Recovery", isOn: Binding(
+                        get: { manager.appConfig.featureFlags.scriptRecovery },
+                        set: { manager.appConfig.featureFlags.scriptRecovery = $0; manager.saveAppConfig() }
+                    ))
+                    Toggle("Dependency Graph Visualization", isOn: Binding(
+                        get: { manager.appConfig.featureFlags.dependencyGraph },
+                        set: { manager.appConfig.featureFlags.dependencyGraph = $0; manager.saveAppConfig() }
+                    ))
+                    Toggle("Advanced Runtime Debugger", isOn: Binding(
+                        get: { manager.appConfig.featureFlags.advancedDebugger },
+                        set: { manager.appConfig.featureFlags.advancedDebugger = $0; manager.saveAppConfig() }
+                    ))
+                }
 
-                    HStack {
-                        Text("Active Storage")
-                        Spacer()
-                        if health.type == .appGroup {
-                            Label("App Group (Shared)", systemImage: "checkmark.circle.fill")
+                // Section: Tools & Maintenance
+                Section("Storage & Maintenance") {
+                    Button(action: { showingCleanupSheet = true }) {
+                        Label("Cleanup Center & Cache Purge", systemImage: "trash.circle")
+                    }
+
+                    Button(action: {
+                        exportData = manager.exportScriptsData()
+                        showingExportShare = true
+                    }) {
+                        Label("Export Full Backup (JSON)", systemImage: "square.and.arrow.up")
+                    }
+                }
+
+                // Section: Privacy & Security (Phase 48)
+                Section("Privacy & Transparency") {
+                    Button(action: { showingPrivacySheet = true }) {
+                        HStack {
+                            Label("Privacy Center", systemImage: "hand.raised.fill")
                                 .foregroundColor(.green)
+                            Spacer()
+                            Text("Zero Telemetry")
                                 .font(.caption)
-                        } else {
-                            Label("App Sandbox (Fallback)", systemImage: "shield.fill")
-                                .foregroundColor(.blue)
-                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
-
-                    HStack {
-                        Text("Writable")
-                        Spacer()
-                        Text(health.isWritable ? "Yes" : "Read-Only (Error)")
-                            .foregroundColor(health.isWritable ? .green : .red)
-                            .font(.caption)
-                    }
-
-                    HStack {
-                        Text("Database Size")
-                        Spacer()
-                        Text(ByteCountFormatter.string(fromByteCount: health.databaseSizeBytes, countStyle: .file))
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-
-                    HStack {
-                        Text("Automated Backups")
-                        Spacer()
-                        Text("\(health.backupCount) available")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
                 }
 
-                Section("Diagnostics & Troubleshooting") {
-                    Button {
-                        diagnosticReport = DiagnosticService.generateReport(scripts: manager.scripts)
-                        showingDiagnosticsSheet = true
-                    } label: {
-                        Label("Run System Diagnostics", systemImage: "stethoscope")
+                // Section: Safari Setup Guide
+                Section("Safari Extension Guide") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("1. Open iOS Settings → Safari → Extensions")
+                        Text("2. Enable 'Userscript'")
+                        Text("3. Grant 'All Websites' permission")
                     }
-
-                    Button {
-                        showingLogsSheet = true
-                    } label: {
-                        Label("View Runtime Logs (\(logManager.entries.count))", systemImage: "text.alignleft")
-                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
 
-                Section("Backup & Migration") {
-                    Button {
-                        if let data = manager.exportScriptsData() {
-                            exportData = data
-                            showingExportShare = true
-                        }
-                    } label: {
-                        Label("Export Scripts as JSON", systemImage: "square.and.arrow.up")
-                    }
-
-                    Button {
-                        showingRestorePicker = true
-                    } label: {
-                        Label("Restore Backup from JSON File", systemImage: "arrow.down.doc")
-                    }
-
-                    if let msg = restoreStatusMessage {
-                        Text(msg)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Button(role: .destructive) {
-                        showingClearAlert = true
-                    } label: {
-                        Label("Remove All Scripts", systemImage: "trash")
-                    }
-                }
-
+                // Section: About
                 Section("About Userscript") {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0 (Pure Engine)")
+                        Text("1.0.3 (Engine v2.0)")
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Text("Extension Protocol")
+                        Text("Schema Version")
                         Spacer()
-                        Text("Version 1 (Handshake verified)")
-                            .foregroundColor(.secondary)
-                    }
-                    HStack {
-                        Text("Telemetry / Ads")
-                        Spacer()
-                        Text("None (100% Privacy-First)")
-                            .foregroundColor(.green)
-                    }
-                    HStack {
-                        Text("License")
-                        Spacer()
-                        Text("Open Source (MIT)")
+                        Text("v\(StorageManager.currentSchemaVersion)")
                             .foregroundColor(.secondary)
                     }
                 }
             }
             .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
-            .alert("Remove All Scripts?", isPresented: $showingClearAlert) {
-                Button("Cancel", role: .cancel) {}
-                Button("Delete All", role: .destructive) {
-                    manager.scripts.removeAll()
-                    manager.saveScripts()
-                }
-            } message: {
-                Text("This will permanently delete all installed userscripts.")
-            }
-            .sheet(isPresented: $showingDiagnosticsSheet) {
-                if let report = diagnosticReport {
-                    NavigationView {
-                        ScrollView {
-                            Text(report.formattedText)
-                                .font(.system(.caption, design: .monospaced))
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .navigationTitle("System Diagnostics")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button("Copy") {
-                                    #if canImport(UIKit)
-                                    UIPasteboard.general.string = report.formattedText
-                                    #endif
-                                    copiedDiagnostic = true
-                                }
-                            }
-                            ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("Done") {
-                                    showingDiagnosticsSheet = false
-                                }
-                            }
-                        }
-                    }
-                    .navigationViewStyle(.stack)
-                }
-            }
-            .sheet(isPresented: $showingLogsSheet) {
+            .sheet(isPresented: $showingCleanupSheet) {
                 NavigationView {
-                    List {
-                        if logManager.entries.isEmpty {
-                            Text("No runtime logs recorded yet.")
-                                .foregroundColor(.secondary)
-                        } else {
-                            ForEach(logManager.entries.reversed()) { entry in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("\(entry.level.emoji) [\(entry.subsystem.rawValue)]")
-                                            .font(.caption2.bold())
-                                        Spacer()
-                                        Text(entry.timestamp, style: .time)
-                                            .font(.caption2)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Text(entry.message)
-                                        .font(.system(.caption, design: .monospaced))
-                                    if let details = entry.details {
-                                        Text(details)
-                                            .font(.system(.caption2, design: .monospaced))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
-                    }
-                    .navigationTitle("Runtime Logs")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Clear") {
-                                logManager.clear()
-                            }
-                        }
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                showingLogsSheet = false
-                            }
-                        }
-                    }
+                    CleanupCenterView()
                 }
-                .navigationViewStyle(.stack)
+            }
+            .sheet(isPresented: $showingPrivacySheet) {
+                NavigationView {
+                    PrivacyCenterView()
+                }
+            }
+            .sheet(isPresented: $showingExportShare) {
+                if let data = exportData {
+                    ShareSheet(activityItems: [data])
+                }
             }
         }
         .navigationViewStyle(.stack)
-        .fileImporter(
-            isPresented: $showingRestorePicker,
-            allowedContentTypes: [.json, .plainText, .data],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else { return }
-                let isSecured = url.startAccessingSecurityScopedResource()
-                defer {
-                    if isSecured { url.stopAccessingSecurityScopedResource() }
+    }
+}
+
+public struct PrivacyCenterView: View {
+    @Environment(\.presentationMode) var presentationMode
+
+    public var body: some View {
+        List {
+            Section(header: Text("Privacy Commitment")) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Image(systemName: "checkmark.shield.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.green)
+                        VStack(alignment: .leading) {
+                            Text("100% Offline & Private")
+                                .font(.headline)
+                            Text("Zero cloud tracking, zero analytics.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 6)
                 }
-                do {
-                    let data = try Data(contentsOf: url)
-                    try manager.importScripts(from: data)
-                    restoreStatusMessage = "Successfully restored scripts!"
-                } catch {
-                    restoreStatusMessage = "Restore failed: \(error.localizedDescription)"
+            }
+
+            Section(header: Text("Telemetry Status")) {
+                HStack {
+                    Text("Analytics SDK")
+                    Spacer()
+                    Text("None").foregroundColor(.green).fontWeight(.bold)
                 }
-            case .failure(let err):
-                restoreStatusMessage = err.localizedDescription
+                HStack {
+                    Text("Crash Reporting")
+                    Spacer()
+                    Text("Local Only").foregroundColor(.green).fontWeight(.bold)
+                }
+                HStack {
+                    Text("Ad Tracking")
+                    Spacer()
+                    Text("Blocked").foregroundColor(.green).fontWeight(.bold)
+                }
+                HStack {
+                    Text("External Sync Servers")
+                    Spacer()
+                    Text("Disabled").foregroundColor(.green).fontWeight(.bold)
+                }
+            }
+        }
+        .navigationTitle("Privacy Center")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Done") { presentationMode.wrappedValue.dismiss() }
             }
         }
     }

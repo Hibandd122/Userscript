@@ -136,12 +136,44 @@
     normalizeUrl: normalizeUrl,
     patternToRegex: patternToRegex,
 
-    test: function(url, script) {
+    test: function(url, script, domainRules, temporaryOverrides) {
       if (!url || !script) return false;
 
       var normUrl = normalizeUrl(url);
+      var scriptId = script.id || script.name;
 
-      // 1. Exclude patterns take absolute precedence
+      // 1. Temporary Override (Phase 4: Highest Priority)
+      if (temporaryOverrides && typeof temporaryOverrides === 'object') {
+        if (temporaryOverrides[scriptId] !== undefined) {
+          return !!temporaryOverrides[scriptId];
+        }
+      }
+
+      // 2. Domain Rules (Phase 3: Domain Priority Hierarchy)
+      if (domainRules && Array.isArray(domainRules)) {
+        var now = Date.now();
+        for (var d = 0; d < domainRules.length; d++) {
+          var rule = domainRules[d];
+          if (rule.expiresAt && new Date(rule.expiresAt).getTime() < now) {
+            continue; // Expired temporary rule
+          }
+
+          var ruleRe = patternToRegex(rule.domainPattern);
+          if (ruleRe && (ruleRe.test(normUrl) || ruleRe.test(url))) {
+            // Check if rule targets this specific script or all scripts
+            if (!rule.targetScriptId || rule.targetScriptId === scriptId) {
+              if (rule.action === 'Block' || rule.action === 'Temporary Block') {
+                return false;
+              }
+              if (rule.action === 'Allow' || rule.action === 'Temporary Allow') {
+                return true;
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Exclude patterns take precedence over matches
       if (script.excludes && Array.isArray(script.excludes)) {
         for (var i = 0; i < script.excludes.length; i++) {
           var excRe = patternToRegex(script.excludes[i]);
@@ -151,7 +183,7 @@
         }
       }
 
-      // 2. Check Match patterns
+      // 4. Check Match patterns
       if (script.matches && Array.isArray(script.matches) && script.matches.length > 0) {
         for (var j = 0; j < script.matches.length; j++) {
           var matchRe = patternToRegex(script.matches[j]);
@@ -161,7 +193,7 @@
         }
       }
 
-      // 3. Check Include patterns
+      // 5. Check Include patterns
       if (script.includes && Array.isArray(script.includes) && script.includes.length > 0) {
         for (var k = 0; k < script.includes.length; k++) {
           var incRe = patternToRegex(script.includes[k]);

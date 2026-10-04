@@ -5,17 +5,16 @@ public struct ScriptDetailView: View {
     @ObservedObject var updater = ScriptUpdater.shared
     @State var script: UserScript
     @State private var showingEditor = false
-    @State private var showingRollbackAlert = false
-    @State private var selectedHistoryItem: UserScript.ScriptHistoryItem? = nil
-    @State private var isCheckingThisUpdate = false
-    @State private var updateResult: ScriptUpdater.UpdateResult? = nil
+    @State private var showingVersionHistory = false
     @State private var selectedTab: DetailTab = .overview
     @Environment(\.dismiss) private var dismiss
 
     public enum DetailTab: String, CaseIterable, Identifiable {
         case overview = "Overview"
+        case config = "Config"
         case permissions = "Permissions"
         case history = "History"
+        case stats = "Stats"
         
         public var id: String { rawValue }
     }
@@ -40,10 +39,14 @@ public struct ScriptDetailView: View {
                 switch selectedTab {
                 case .overview:
                     overviewSection
+                case .config:
+                    configSection
                 case .permissions:
                     permissionsSection
                 case .history:
                     historySection
+                case .stats:
+                    statsSection
                 }
             }
             .listStyle(.insetGrouped)
@@ -60,6 +63,11 @@ public struct ScriptDetailView: View {
         .sheet(isPresented: $showingEditor) {
             ScriptEditorView(script: script)
         }
+        .sheet(isPresented: $showingVersionHistory) {
+            NavigationView {
+                VersionHistoryView(script: script)
+            }
+        }
         .onReceive(manager.$scripts) { updatedScripts in
             if let current = updatedScripts.first(where: { $0.id == script.id }) {
                 self.script = current
@@ -70,7 +78,7 @@ public struct ScriptDetailView: View {
     // MARK: - Overview Section
     private var overviewSection: some View {
         Group {
-            Section("Status & Timing") {
+            Section("Status & Trust") {
                 Toggle("Enabled", isOn: Binding(
                     get: { script.enabled },
                     set: { newValue in
@@ -80,135 +88,145 @@ public struct ScriptDetailView: View {
                 ))
 
                 HStack {
-                    Text("Version")
+                    Text("Trust Level")
                     Spacer()
-                    Text("v\(script.version)")
-                        .foregroundColor(.secondary)
-                        .font(.system(.body, design: .monospaced))
-                }
-
-                if !script.author.isEmpty {
-                    HStack {
-                        Text("Author")
-                        Spacer()
-                        Text(script.author)
-                            .foregroundColor(.secondary)
-                    }
+                    Text(script.trustLevel.rawValue)
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(trustColor.opacity(0.15))
+                        .foregroundColor(trustColor)
+                        .cornerRadius(6)
                 }
 
                 HStack {
-                    Text("Run-At Timing")
+                    Text("Integrity Hash (SHA-256)")
+                    Spacer()
+                    Text(String(script.sha256Hash.prefix(12)) + "...")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+
+                Picker("Group", selection: Binding(
+                    get: { script.group ?? "none" },
+                    set: { newVal in
+                        script.group = newVal == "none" ? nil : newVal
+                        manager.add(script: script)
+                    }
+                )) {
+                    Text("None").tag("none")
+                    ForEach(manager.groups) { g in
+                        Text(g.name).tag(g.id)
+                    }
+                }
+
+                Picker("SPA Navigation Mode", selection: Binding(
+                    get: { script.spaMode },
+                    set: { newVal in
+                        script.spaMode = newVal
+                        manager.add(script: script)
+                    }
+                )) {
+                    ForEach(UserScript.SPANavigationMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+            }
+
+            Section("Timing & Execution") {
+                HStack {
+                    Text("Run-At")
                     Spacer()
                     Text(script.runAt.title)
                         .foregroundColor(.secondary)
                 }
 
-                if !script.description.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Description")
+                HStack {
+                    Text("Priority")
+                    Spacer()
+                    Text("\(script.priority)")
+                        .foregroundColor(.secondary)
+                }
+
+                Toggle("Run in Frames (@noframes)", isOn: Binding(
+                    get: { !script.noframes },
+                    set: { script.noframes = !$0; manager.add(script: script) }
+                ))
+            }
+
+            if !script.description.isEmpty {
+                Section("Description") {
+                    Text(script.description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+    }
+
+    // MARK: - Script Configuration Section (Phase 6)
+    private var configSection: some View {
+        Group {
+            if script.configSchema.isEmpty {
+                Section {
+                    VStack(alignment: .center, spacing: 8) {
+                        Image(systemName: "slider.horizontal.3")
+                            .font(.title)
+                            .foregroundColor(.secondary)
+                        Text("No Script Settings Defined")
+                            .font(.headline)
+                        Text("This script does not declare metadata @config schema fields.")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text(script.description)
-                            .font(.body)
+                            .multilineTextAlignment(.center)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding()
                 }
-            }
-
-            Section("Updates") {
-                if let newVer = updater.availableUpdates[script.id] {
-                    HStack {
-                        Label("New version v\(newVer) available", systemImage: "arrow.triangle.2.circlepath.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.subheadline)
-                        Spacer()
-                        Button("Update Now") {
-                            Task {
-                                if let updated = try? await updater.performUpdate(script: script) {
-                                    manager.add(script: updated)
+            } else {
+                Section("Script Preferences") {
+                    ForEach($script.configSchema) { $field in
+                        switch field.type {
+                        case .toggle:
+                            Toggle(field.label, isOn: Binding(
+                                get: { field.currentValue == "true" },
+                                set: { field.currentValue = $0 ? "true" : "false"; manager.add(script: script) }
+                            ))
+                        case .number:
+                            HStack {
+                                Text(field.label)
+                                Spacer()
+                                TextField("Value", text: Binding(
+                                    get: { field.currentValue },
+                                    set: { field.currentValue = $0; manager.add(script: script) }
+                                ))
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                            }
+                        case .text, .url, .color:
+                            HStack {
+                                Text(field.label)
+                                Spacer()
+                                TextField("Value", text: Binding(
+                                    get: { field.currentValue },
+                                    set: { field.currentValue = $0; manager.add(script: script) }
+                                ))
+                                .multilineTextAlignment(.trailing)
+                            }
+                        case .select:
+                            if let opts = field.options {
+                                Picker(field.label, selection: Binding(
+                                    get: { field.currentValue },
+                                    set: { field.currentValue = $0; manager.add(script: script) }
+                                )) {
+                                    ForEach(opts, id: \.self) { opt in
+                                        Text(opt).tag(opt)
+                                    }
                                 }
                             }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
                     }
-                } else {
-                    HStack {
-                        Text("Update Check")
-                        Spacer()
-                        if isCheckingThisUpdate {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Button("Check Update") {
-                                Task {
-                                    isCheckingThisUpdate = true
-                                    let res = await updater.checkForUpdate(script: script)
-                                    updateResult = res
-                                    isCheckingThisUpdate = false
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                        }
-                    }
-
-                    if let res = updateResult {
-                        if res.hasUpdate {
-                            Text("New version found: v\(res.remoteVersion)")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                        } else {
-                            Text("Up to date (v\(res.currentVersion))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-
-            Section("Matched Domains (@match)") {
-                ForEach(script.matches, id: \.self) { match in
-                    HStack {
-                        Image(systemName: "globe")
-                            .foregroundColor(.accentColor)
-                            .font(.caption)
-                        Text(match)
-                            .font(.system(.subheadline, design: .monospaced))
-                    }
-                }
-            }
-
-            if !script.includes.isEmpty {
-                Section("Included URLs (@include)") {
-                    ForEach(script.includes, id: \.self) { include in
-                        Text(include)
-                            .font(.system(.subheadline, design: .monospaced))
-                    }
-                }
-            }
-
-            if !script.excludes.isEmpty {
-                Section("Excluded URLs (@exclude)") {
-                    ForEach(script.excludes, id: \.self) { exclude in
-                        Text(exclude)
-                            .font(.system(.subheadline, design: .monospaced))
-                    }
-                }
-            }
-
-            Section {
-                Button {
-                    showingEditor = true
-                } label: {
-                    Label("View / Edit Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
-                        .foregroundColor(.accentColor)
-                }
-
-                Button(role: .destructive) {
-                    manager.delete(script: script)
-                    dismiss()
-                } label: {
-                    Label("Delete Script", systemImage: "trash")
                 }
             }
         }
@@ -217,60 +235,48 @@ public struct ScriptDetailView: View {
     // MARK: - Permissions Section
     private var permissionsSection: some View {
         Group {
-            let capabilities = PermissionManager.analyze(grants: script.grants)
-            let overallRisk = PermissionManager.calculateOverallRisk(capabilities: capabilities)
-
-            Section("Risk Profile") {
-                HStack {
-                    Text("Overall Safety")
-                    Spacer()
-                    Text(overallRisk.rawValue)
-                        .font(.subheadline.bold())
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            overallRisk == .safe ? Color.green.opacity(0.15) :
-                            overallRisk == .low ? Color.blue.opacity(0.15) :
-                            overallRisk == .medium ? Color.orange.opacity(0.15) : Color.red.opacity(0.15)
-                        )
-                        .foregroundColor(
-                            overallRisk == .safe ? .green :
-                            overallRisk == .low ? .blue :
-                            overallRisk == .medium ? .orange : .red
-                        )
-                        .clipShape(Capsule())
+            Section("Matched Domains (@match)") {
+                ForEach(script.matches, id: \.self) { match in
+                    Text(match)
+                        .font(.system(.caption, design: .monospaced))
                 }
             }
 
-            Section("Granted Capabilities") {
-                ForEach(capabilities) { cap in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Image(systemName: cap.iconName)
-                                .foregroundColor(.accentColor)
-                            Text(cap.rawValue)
-                                .font(.headline)
-                            Spacer()
-                            Text(cap.riskLevel.rawValue)
-                                .font(.caption2.bold())
-                                .foregroundColor(.secondary)
-                        }
-                        Text(cap.description)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+            if !script.excludes.isEmpty {
+                Section("Excluded Domains (@exclude)") {
+                    ForEach(script.excludes, id: \.self) { exc in
+                        Text(exc)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(.red)
                     }
-                    .padding(.vertical, 4)
                 }
             }
 
-            Section("Raw Directives (@grant)") {
+            Section("Granted APIs (@grant)") {
                 ForEach(script.grants, id: \.self) { grant in
                     HStack {
-                        Image(systemName: "key.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption)
+                        Image(systemName: "checkmark.shield")
+                            .foregroundColor(.blue)
                         Text(grant)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.subheadline)
+                    }
+                }
+            }
+
+            if !script.resources.isEmpty {
+                Section("Bundled Resources (@resource)") {
+                    ForEach(script.resources) { res in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(res.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                Text(res.url)
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
                     }
                 }
             }
@@ -279,65 +285,79 @@ public struct ScriptDetailView: View {
 
     // MARK: - History Section
     private var historySection: some View {
-        Group {
-            if script.history.isEmpty {
-                Section {
-                    VStack(spacing: 12) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.largeTitle)
-                            .foregroundColor(.secondary)
-                        Text("No Version History Yet")
-                            .font(.headline)
-                        Text("Past versions are automatically saved when you update or edit this script.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                }
-            } else {
-                Section("Previous Versions (\(script.history.count))") {
-                    ForEach(script.history) { item in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("v\(item.version)")
-                                    .font(.system(.headline, design: .monospaced))
-                                Spacer()
-                                Text(item.timestamp, style: .date)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            if let summary = item.changeSummary {
-                                Text(summary)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            Button("Rollback to this version") {
-                                selectedHistoryItem = item
-                                showingRollbackAlert = true
-                            }
-                            .buttonStyle(.borderless)
-                            .font(.caption)
-                            .foregroundColor(.accentColor)
-                            .padding(.top, 2)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                }
-                .alert("Rollback to v\(selectedHistoryItem?.version ?? "")?", isPresented: $showingRollbackAlert) {
-                    Button("Cancel", role: .cancel) {}
-                    Button("Rollback", role: .destructive) {
-                        if let item = selectedHistoryItem {
-                            var current = script
-                            updater.rollback(script: &current, to: item)
-                            manager.add(script: current)
-                        }
-                    }
-                } message: {
-                    Text("This will replace the active script code with the selected version. Current code will be preserved in history.")
+        Section {
+            Button(action: { showingVersionHistory = true }) {
+                HStack {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundColor(.blue)
+                    Text("Open Version Timeline & Diff Viewer")
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
+        }
+    }
+
+    // MARK: - Stats Section (Phase 36)
+    private var statsSection: some View {
+        Group {
+            Section("Execution Statistics") {
+                HStack {
+                    Text("Total Runs")
+                    Spacer()
+                    Text("\(script.executionCount)")
+                        .foregroundColor(.secondary)
+                }
+                HStack {
+                    Text("Failures")
+                    Spacer()
+                    Text("\(script.statistics.failureCount)")
+                        .foregroundColor(script.statistics.failureCount > 0 ? .red : .secondary)
+                }
+                if let last = script.lastExecutedAt {
+                    HStack {
+                        Text("Last Execution")
+                        Spacer()
+                        Text(last.formatted(date: .abbreviated, time: .shortened))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                if let err = script.lastError {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Last Error Message:")
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        Text(err)
+                            .font(.system(.caption2, design: .monospaced))
+                            .padding(6)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(6)
+                    }
+                }
+            }
+
+            Section {
+                Button("Reset Statistics") {
+                    script.executionCount = 0
+                    script.statistics = UserScript.ScriptStatistics()
+                    script.lastError = nil
+                    manager.add(script: script)
+                }
+                .foregroundColor(.red)
+            }
+        }
+    }
+
+    private var trustColor: Color {
+        switch script.trustLevel {
+        case .trusted: return .green
+        case .knownSource: return .blue
+        case .local: return .purple
+        case .modified: return .orange
+        case .unknown: return .red
         }
     }
 }

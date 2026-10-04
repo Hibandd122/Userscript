@@ -3,32 +3,51 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Userscript</title>
+  <title>Userscript Website Panel</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
+  <!-- Header with Emergency Killswitch -->
   <div class="header">
     <div class="title-container">
       <span class="logo">⚡</span>
       <span class="title">Userscript</span>
     </div>
-    <span id="badge" class="badge">0</span>
+    <div class="header-right">
+      <button id="emergency-btn" class="emergency-toggle" title="Emergency Disable All Scripts">OFF</button>
+      <span id="badge" class="badge">0</span>
+    </div>
   </div>
 
-  <div class="current-site">
-    <span class="site-label">Site:</span>
-    <span id="current-url" class="site-url">Loading...</span>
+  <!-- Website Context Panel (Phase 2) -->
+  <div class="domain-card">
+    <div class="domain-info">
+      <span class="domain-icon">🌐</span>
+      <div class="domain-texts">
+        <span id="current-domain" class="domain-title">Loading...</span>
+        <span id="stats-summary" class="domain-subtitle">0 matched • 0 running</span>
+      </div>
+    </div>
+    <div class="domain-actions">
+      <button id="reload-tab-btn" class="action-btn" title="Reload Tab">🔄 Reload</button>
+      <button id="block-domain-btn" class="action-btn danger" title="Disable all scripts on this website">🚫 Block Site</button>
+    </div>
   </div>
 
+  <!-- Scripts Section -->
   <div class="scripts-section">
-    <div class="section-title">Active Scripts on Page</div>
+    <div class="section-header">
+      <span class="section-title">Matched Scripts</span>
+      <span id="script-count-label" class="count-tag">0</span>
+    </div>
     <div id="script-list" class="script-list">
       <div class="empty">No scripts active on this tab</div>
     </div>
   </div>
 
+  <!-- Footer Actions -->
   <div class="footer">
-    <a href="#" id="open-app-btn" class="open-btn">Open Userscript Manager</a>
+    <a href="#" id="open-app-btn" class="open-btn">Open Control Center</a>
   </div>
 
   <script src="popup.js"></script>

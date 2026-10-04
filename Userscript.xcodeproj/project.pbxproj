@@ -40,6 +40,18 @@
 		8B2202EB2202422282220006 /* test-suite.html in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220005 /* test-suite.html */; };
 		8B2202EB2202422282220011 /* MangaUniversalPro.bundle.user.js in Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */; };
 		8B2202EB2202422282220012 /* MangaUniversalPro.bundle.user.js in Extension Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */; };
+		8B2202EB2202422282220022 /* DomainRule.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220021 /* DomainRule.swift */; };
+		8B2202EB2202422282220024 /* ScriptGroup.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220023 /* ScriptGroup.swift */; };
+		8B2202EB2202422282220026 /* AppConfig.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220025 /* AppConfig.swift */; };
+		8B2202EB2202422282220028 /* ScriptDependency.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220027 /* ScriptDependency.swift */; };
+		8B2202EB220242228222002A /* DashboardView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220029 /* DashboardView.swift */; };
+		8B2202EB220242228222002C /* CommandPaletteView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222002B /* CommandPaletteView.swift */; };
+		8B2202EB220242228222002E /* DomainManagementView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222002D /* DomainManagementView.swift */; };
+		8B2202EB2202422282220030 /* MatchTesterView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB220242228222002F /* MatchTesterView.swift */; };
+		8B2202EB2202422282220032 /* DebuggerCenterView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220031 /* DebuggerCenterView.swift */; };
+		8B2202EB2202422282220034 /* CleanupCenterView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220033 /* CleanupCenterView.swift */; };
+		8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220035 /* ScriptGroupsView.swift */; };
+		8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220037 /* VersionHistoryView.swift */; };
 		10206C4CBDBB47A59BD08FBF /* UserscriptExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -104,6 +116,18 @@
 		8B2202EB2202422282220003 /* injector.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/injector.js"; sourceTree = "<group>"; };
 		8B2202EB2202422282220005 /* test-suite.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "UserscriptExtension/Resources/test-suite.html"; sourceTree = "<group>"; };
 		8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "Userscript/Resources/MangaUniversalPro.bundle.user.js"; sourceTree = "<group>"; };
+		8B2202EB2202422282220021 /* DomainRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/DomainRule.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220023 /* ScriptGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/ScriptGroup.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220025 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/AppConfig.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220027 /* ScriptDependency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/ScriptDependency.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220029 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/DashboardView.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222002B /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/CommandPaletteView.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222002D /* DomainManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/DomainManagementView.swift"; sourceTree = "<group>"; };
+		8B2202EB220242228222002F /* MatchTesterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/MatchTesterView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220031 /* DebuggerCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/DebuggerCenterView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220033 /* CleanupCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/CleanupCenterView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220035 /* ScriptGroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/ScriptGroupsView.swift"; sourceTree = "<group>"; };
+		8B2202EB2202422282220037 /* VersionHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Views/VersionHistoryView.swift"; sourceTree = "<group>"; };
 		C7BFF12E1FDC4B00BFA80123 /* Userscript.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Userscript.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9B90BA0DF214497BCF554E5 /* UserscriptExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = UserscriptExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -149,6 +173,18 @@
 				61CB7A3F61B448FBA73F2777 /* Info.plist */,
 				95810833183543DB9A055DEB /* Userscript.entitlements */,
 				8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */,
+				8B2202EB2202422282220021 /* DomainRule.swift */,
+				8B2202EB2202422282220023 /* ScriptGroup.swift */,
+				8B2202EB2202422282220025 /* AppConfig.swift */,
+				8B2202EB2202422282220027 /* ScriptDependency.swift */,
+				8B2202EB2202422282220029 /* DashboardView.swift */,
+				8B2202EB220242228222002B /* CommandPaletteView.swift */,
+				8B2202EB220242228222002D /* DomainManagementView.swift */,
+				8B2202EB220242228222002F /* MatchTesterView.swift */,
+				8B2202EB2202422282220031 /* DebuggerCenterView.swift */,
+				8B2202EB2202422282220033 /* CleanupCenterView.swift */,
+				8B2202EB2202422282220035 /* ScriptGroupsView.swift */,
+				8B2202EB2202422282220037 /* VersionHistoryView.swift */,
 			);
 			name = Userscript;
 			sourceTree = "<group>";
@@ -304,6 +340,18 @@
 				8A1101DA1101411181110006 /* PermissionManager.swift in Sources */,
 				8A1101DA1101411181110008 /* ScriptUpdater.swift in Sources */,
 				8A1101DA110141118111000A /* StorageManager.swift in Sources */,
+				8B2202EB2202422282220022 /* DomainRule.swift in Build */,
+				8B2202EB2202422282220024 /* ScriptGroup.swift in Build */,
+				8B2202EB2202422282220026 /* AppConfig.swift in Build */,
+				8B2202EB2202422282220028 /* ScriptDependency.swift in Build */,
+				8B2202EB220242228222002A /* DashboardView.swift in Build */,
+				8B2202EB220242228222002C /* CommandPaletteView.swift in Build */,
+				8B2202EB220242228222002E /* DomainManagementView.swift in Build */,
+				8B2202EB2202422282220030 /* MatchTesterView.swift in Build */,
+				8B2202EB2202422282220032 /* DebuggerCenterView.swift in Build */,
+				8B2202EB2202422282220034 /* CleanupCenterView.swift in Build */,
+				8B2202EB2202422282220036 /* ScriptGroupsView.swift in Build */,
+				8B2202EB2202422282220038 /* VersionHistoryView.swift in Build */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

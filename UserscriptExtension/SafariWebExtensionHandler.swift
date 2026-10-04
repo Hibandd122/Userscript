@@ -3,7 +3,7 @@ import os.log
 
 public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     private let appGroupIdentifier = "group.com.userscript.app"
-    public static let protocolVersion = 1
+    public static let protocolVersion = 2
 
     public func beginRequest(with context: NSExtensionContext) {
         guard let item = context.inputItems.first as? NSExtensionItem,
@@ -30,6 +30,10 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
             handleGetStorage(context: context, message: message)
         case "reportExecution":
             handleReportExecution(context: context, message: message)
+        case "addDomainRule":
+            handleAddDomainRule(context: context, message: message)
+        case "saveAppConfig":
+            handleSaveAppConfig(context: context, message: message)
         default:
             respond(to: context, with: [
                 "status": "error",
@@ -43,14 +47,19 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
         respond(to: context, with: [
             "status": "ok",
             "protocolVersion": Self.protocolVersion,
-            "capabilities": ["scripts", "index", "storage", "analytics", "corsProxy"]
+            "capabilities": ["scripts", "index", "storage", "analytics", "corsProxy", "domainRules", "appConfig"]
         ])
+    }
+
+    private func getTargetDirectory() -> URL {
+        let fileManager = FileManager.default
+        let groupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
+        return groupURL ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
     private func handleGetScriptIndex(context: NSExtensionContext) {
         let fileManager = FileManager.default
-        let groupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-        let dir = groupURL ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dir = getTargetDirectory()
         let indexFile = dir.appendingPathComponent("script_index.json")
 
         if fileManager.fileExists(atPath: indexFile.path),
@@ -66,15 +75,35 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
 
     private func handleGetScripts(context: NSExtensionContext) {
         let fileManager = FileManager.default
-        let groupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-        let dir = groupURL ?? fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let dir = getTargetDirectory()
         let fileURL = dir.appendingPathComponent("userscripts.json")
+        let domainRulesURL = dir.appendingPathComponent("domain_rules.json")
+        let appConfigURL = dir.appendingPathComponent("app_config.json")
+
+        var loadedDomainRules: [[String: Any]] = []
+        if fileManager.fileExists(atPath: domainRulesURL.path),
+           let dData = try? Data(contentsOf: domainRulesURL),
+           let dArr = try? JSONSerialization.jsonObject(with: dData) as? [[String: Any]] {
+            loadedDomainRules = dArr
+        }
+
+        var loadedAppConfig: [String: Any] = [:]
+        if fileManager.fileExists(atPath: appConfigURL.path),
+           let cData = try? Data(contentsOf: appConfigURL),
+           let cDict = try? JSONSerialization.jsonObject(with: cData) as? [String: Any] {
+            loadedAppConfig = cDict
+        }
 
         if fileManager.fileExists(atPath: fileURL.path),
            let data = try? Data(contentsOf: fileURL),
            let jsonArray = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
             let activeScripts = jsonArray.filter { ($0["enabled"] as? Bool) ?? true }
-            respond(to: context, with: ["status": "ok", "scripts": activeScripts])
+            respond(to: context, with: [
+                "status": "ok",
+                "scripts": activeScripts,
+                "domainRules": loadedDomainRules,
+                "appConfig": loadedAppConfig
+            ])
             return
         }
 
@@ -113,11 +142,63 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
                 "noframes": false,
                 "content": content
             ]
-            respond(to: context, with: ["status": "ok", "scripts": [scriptDict]])
+            respond(to: context, with: [
+                "status": "ok",
+                "scripts": [scriptDict],
+                "domainRules": loadedDomainRules,
+                "appConfig": loadedAppConfig
+            ])
             return
         }
 
-        respond(to: context, with: ["status": "ok", "scripts": []])
+        respond(to: context, with: [
+            "status": "ok",
+            "scripts": [],
+            "domainRules": loadedDomainRules,
+            "appConfig": loadedAppConfig
+        ])
+    }
+
+    private func handleAddDomainRule(context: NSExtensionContext, message: [String: Any]) {
+        guard let domain = message["domain"] as? String,
+              let action = message["action"] as? String else {
+            respond(to: context, with: ["status": "error", "message": "Missing domain or action"])
+            return
+        }
+
+        let dir = getTargetDirectory()
+        let fileURL = dir.appendingPathComponent("domain_rules.json")
+        var rules: [[String: Any]] = []
+
+        if FileManager.default.fileExists(atPath: fileURL.path),
+           let data = try? Data(contentsOf: fileURL),
+           let list = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+            rules = list
+        }
+
+        let newRule: [String: Any] = [
+            "id": UUID().uuidString,
+            "domainPattern": domain,
+            "action": action,
+            "createdAt": ISO8601DateFormatter().string(from: Date())
+        ]
+        rules.removeAll { ($0["domainPattern"] as? String) == domain }
+        rules.append(newRule)
+
+        if let encoded = try? JSONSerialization.data(withJSONObject: rules, options: [.prettyPrinted]) {
+            try? encoded.write(to: fileURL)
+        }
+
+        respond(to: context, with: ["status": "ok"])
+    }
+
+    private func handleSaveAppConfig(context: NSExtensionContext, message: [String: Any]) {
+        let dir = getTargetDirectory()
+        let fileURL = dir.appendingPathComponent("app_config.json")
+        if let encoded = try? JSONSerialization.data(withJSONObject: message, options: [.prettyPrinted]) {
+            try? encoded.write(to: fileURL)
+        }
+        respond(to: context, with: ["status": "ok"])
     }
 
     private func handleSaveStorage(context: NSExtensionContext, message: [String: Any]) {
@@ -139,7 +220,6 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
     }
 
     private func handleReportExecution(context: NSExtensionContext, message: [String: Any]) {
-        // Record script execution event for diagnostics
         if let scriptName = message["scriptName"] as? String {
             os_log("Userscript Executed: %{public}@", log: .default, type: .info, scriptName)
         }

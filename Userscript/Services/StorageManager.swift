@@ -3,6 +3,7 @@ import Foundation
 public final class StorageManager {
     public static let shared = StorageManager()
     public static let appGroupIdentifier = "group.com.userscript.app"
+    public static let currentSchemaVersion = 2
 
     public enum StorageType: String, Codable {
         case appGroup = "App Group (Shared)"
@@ -16,9 +17,19 @@ public final class StorageManager {
         public let totalFiles: Int
         public let databaseSizeBytes: Int64
         public let backupCount: Int
+        public let schemaVersion: Int
+    }
+
+    public struct CleanupCandidateReport: Codable {
+        public let backupFilesCount: Int
+        public let backupFilesSizeBytes: Int64
+        public let tempFilesCount: Int
+        public let tempFilesSizeBytes: Int64
+        public let totalReclaimableBytes: Int64
     }
 
     private let fileManager = FileManager.default
+    private let schemaVersionKey = "userscript_storage_schema_version"
 
     public var activeStorageType: StorageType {
         if fileManager.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier) != nil {
@@ -42,7 +53,17 @@ public final class StorageManager {
         return dir
     }
 
-    private init() {}
+    public var cacheDirectory: URL {
+        let dir = rootDirectory.appendingPathComponent("Caches", isDirectory: true)
+        if !fileManager.fileExists(atPath: dir.path) {
+            try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
+        }
+        return dir
+    }
+
+    private init() {
+        performMigrationIfNeeded()
+    }
 
     public func fileURL(for filename: String) -> URL {
         rootDirectory.appendingPathComponent(filename)
@@ -88,11 +109,96 @@ public final class StorageManager {
     }
 
     public func listBackups() -> [URL] {
-        guard let files = try? fileManager.contentsOfDirectory(at: backupsDirectory, includingPropertiesForKeys: [.contentModificationDateKey]) else {
+        guard let files = try? fileManager.contentsOfDirectory(at: backupsDirectory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey]) else {
             return []
         }
         return files.filter { $0.pathExtension == "json" || $0.lastPathComponent.hasPrefix("backup_") }
             .sorted { ($0.lastPathComponent) > ($1.lastPathComponent) }
+    }
+
+    // Phase 45: Schema Migration with Automatic Snapshot & Rollback
+    private func performMigrationIfNeeded() {
+        let storedVersion = UserDefaults.standard.integer(forKey: schemaVersionKey)
+        if storedVersion == 0 {
+            // First install or upgrade from v1
+            if exists(filename: "userscripts.json") {
+                _ = createBackup(of: "userscripts.json")
+            }
+            UserDefaults.standard.set(Self.currentSchemaVersion, forKey: schemaVersionKey)
+        } else if storedVersion < Self.currentSchemaVersion {
+            let snapshotURL = createBackup(of: "userscripts.json")
+            do {
+                // Migration logic: UserScript models use backward-compatible Decodable
+                UserDefaults.standard.set(Self.currentSchemaVersion, forKey: schemaVersionKey)
+                print("[StorageManager] Successfully migrated schema from v\(storedVersion) to v\(Self.currentSchemaVersion)")
+            } catch {
+                print("[StorageManager] Migration failed, restoring snapshot...")
+                if let snapshotURL = snapshotURL, let originalData = try? Data(contentsOf: snapshotURL) {
+                    try? write(data: originalData, to: "userscripts.json")
+                }
+            }
+        }
+    }
+
+    // Phase 43: Storage Cleanup Center Analysis
+    public func scanCleanupCandidates() -> CleanupCandidateReport {
+        var backupCount = 0
+        var backupBytes: Int64 = 0
+        for b in listBackups() {
+            backupCount += 1
+            if let attrs = try? fileManager.attributesOfItem(atPath: b.path),
+               let size = attrs[.size] as? Int64 {
+                backupBytes += size
+            }
+        }
+
+        var tempCount = 0
+        var tempBytes: Int64 = 0
+        if let cacheFiles = try? fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: [.fileSizeKey]) {
+            for c in cacheFiles {
+                tempCount += 1
+                if let attrs = try? fileManager.attributesOfItem(atPath: c.path),
+                   let size = attrs[.size] as? Int64 {
+                    tempBytes += size
+                }
+            }
+        }
+
+        return CleanupCandidateReport(
+            backupFilesCount: backupCount,
+            backupFilesSizeBytes: backupBytes,
+            tempFilesCount: tempCount,
+            tempFilesSizeBytes: tempBytes,
+            totalReclaimableBytes: backupBytes + tempBytes
+        )
+    }
+
+    public func cleanAllSafeItems() -> Int64 {
+        var reclaimed: Int64 = 0
+        let backups = listBackups()
+        // Keep the latest 2 backups, delete older
+        if backups.count > 2 {
+            for b in backups.dropFirst(2) {
+                if let attrs = try? fileManager.attributesOfItem(atPath: b.path),
+                   let size = attrs[.size] as? Int64 {
+                    reclaimed += size
+                }
+                try? fileManager.removeItem(at: b)
+            }
+        }
+
+        // Clean cache directory
+        if let cacheFiles = try? fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil) {
+            for c in cacheFiles {
+                if let attrs = try? fileManager.attributesOfItem(atPath: c.path),
+                   let size = attrs[.size] as? Int64 {
+                    reclaimed += size
+                }
+                try? fileManager.removeItem(at: c)
+            }
+        }
+
+        return reclaimed
     }
 
     public func checkHealth() -> StorageHealthReport {
@@ -128,7 +234,8 @@ public final class StorageManager {
             isWritable: isWritable,
             totalFiles: totalFiles,
             databaseSizeBytes: dbSize,
-            backupCount: listBackups().count
+            backupCount: listBackups().count,
+            schemaVersion: UserDefaults.standard.integer(forKey: schemaVersionKey)
         )
     }
 }

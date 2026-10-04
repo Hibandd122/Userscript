@@ -24,6 +24,10 @@ public struct ScriptParser {
         var iconURL: String? = nil
         var updateUrl: String? = nil
         var downloadUrl: String? = nil
+        var configFields: [UserScript.ScriptConfigField] = []
+        var spaMode: UserScript.SPANavigationMode = .runOncePerPage
+        var group: String? = nil
+        var trustLevel: UserScript.TrustLevel = .local
 
         let lines = cleanContent.components(separatedBy: .newlines)
         var insideHeader = false
@@ -93,6 +97,29 @@ public struct ScriptParser {
                         if !value.isEmpty { downloadUrl = value }
                     case "updateurl":
                         if !value.isEmpty { updateUrl = value }
+                    case "config":
+                        // Syntax: @config key:type:label:default[:opt1,opt2]
+                        let segs = value.components(separatedBy: ":")
+                        if segs.count >= 4 {
+                            let k = segs[0].trimmingCharacters(in: .whitespaces)
+                            let t = segs[1].trimmingCharacters(in: .whitespaces)
+                            let l = segs[2].trimmingCharacters(in: .whitespaces)
+                            let d = segs[3].trimmingCharacters(in: .whitespaces)
+                            let opts = segs.count > 4 ? segs[4].components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) } : nil
+                            let fieldType = UserScript.ScriptConfigField.ConfigType(rawValue: t) ?? .text
+                            configFields.append(UserScript.ScriptConfigField(key: k, label: l, type: fieldType, defaultValue: d, options: opts))
+                        }
+                    case "spa":
+                        switch value.lowercased() {
+                        case "page": spaMode = .runOncePerPage
+                        case "url": spaMode = .runOncePerUrl
+                        case "navigation", "always": spaMode = .runOnEveryNavigation
+                        default: break
+                        }
+                    case "group":
+                        if !value.isEmpty { group = value }
+                    case "trust":
+                        if let tl = UserScript.TrustLevel(rawValue: value) { trustLevel = tl }
                     default:
                         break
                     }
@@ -114,6 +141,7 @@ public struct ScriptParser {
             priority: 100,
             favorite: false,
             tags: [],
+            group: group,
             content: cleanContent,
             matches: matches,
             includes: includes,
@@ -126,7 +154,10 @@ public struct ScriptParser {
             iconURL: iconURL,
             sourceUrl: sourceUrl,
             updateUrl: updateUrl,
-            downloadUrl: downloadUrl
+            downloadUrl: downloadUrl,
+            configSchema: configFields,
+            trustLevel: trustLevel,
+            spaMode: spaMode
         )
     }
 

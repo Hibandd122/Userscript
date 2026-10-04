@@ -1,10 +1,13 @@
 /**
- * Userscript Safari Web Extension Background Service Worker
- * Manages native IPC, cross-origin network requests, and script caching.
+ * Userscript Safari Web Extension Background Service Worker 2.0
+ * Includes: Temporary Script Control (Phase 4), Domain Management (Phase 3), Emergency Disable (Phase 50), Website Script Panel IPC
  */
 
 var cachedScripts = [];
-var nativeHandshakeDone = false;
+var cachedDomainRules = [];
+var cachedAppConfig = { emergencyDisableAll: false, performanceMode: 'Balanced' };
+var temporaryOverrides = Object.create(null); // scriptId -> boolean
+var overrideExpirations = Object.create(null); // scriptId -> timestamp
 
 function sendNative(action, payload) {
   return new Promise(function(resolve, reject) {
@@ -19,47 +22,46 @@ function sendNative(action, payload) {
         }
       });
     } else {
-      resolve({ status: 'ok', scripts: cachedScripts });
+      resolve({ status: 'ok', scripts: cachedScripts, domainRules: cachedDomainRules, appConfig: cachedAppConfig });
     }
   });
 }
 
-function initNativeConnection() {
-  sendNative('handshake')
-    .then(function(res) {
-      nativeHandshakeDone = true;
-      return syncScripts();
-    })
-    .catch(function(err) {
-      console.warn('[Userscript Background] Native handshake delayed:', err.message);
-      syncScripts();
-    });
-}
-
-function syncScripts() {
+function syncAll() {
   return sendNative('getScripts')
     .then(function(res) {
       if (res && res.scripts) {
         cachedScripts = res.scripts;
       }
-      return cachedScripts;
+      if (res && res.domainRules) {
+        cachedDomainRules = res.domainRules;
+      }
+      if (res && res.appConfig) {
+        cachedAppConfig = res.appConfig;
+      }
+      return { scripts: cachedScripts, domainRules: cachedDomainRules, appConfig: cachedAppConfig };
     })
     .catch(function() {
-      return cachedScripts;
+      return { scripts: cachedScripts, domainRules: cachedDomainRules, appConfig: cachedAppConfig };
     });
 }
 
-// Initial sync
-initNativeConnection();
+// Initial Sync
+syncAll();
 
-// Periodically refresh scripts or on tab activation
-if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.onActivated) {
-  chrome.tabs.onActivated.addListener(function() {
-    syncScripts();
-  });
+// Prune expired temporary overrides periodically
+function pruneExpiredOverrides() {
+  var now = Date.now();
+  for (var key in overrideExpirations) {
+    if (overrideExpirations[key] && overrideExpirations[key] < now) {
+      delete temporaryOverrides[key];
+      delete overrideExpirations[key];
+    }
+  }
 }
+setInterval(pruneExpiredOverrides, 30000);
 
-// Global message handler
+// Global Message Handler
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (!request || !request.action) return false;
 
@@ -77,19 +79,31 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     sendResponse(responseMsg);
   }
 
-  // 1. Get Matching Scripts
+  // 1. Get Matching Scripts (Taking into account Emergency Disable, Domain Rules & Temp Overrides)
   if (action === 'getMatchingScripts') {
-    syncScripts().then(function(scripts) {
+    syncAll().then(function(state) {
+      pruneExpiredOverrides();
+
+      // Phase 50: Emergency Disable Check
+      if (state.appConfig && state.appConfig.emergencyDisableAll) {
+        if (sender && sender.tab && sender.tab.id && chrome.browserAction && chrome.browserAction.setBadgeText) {
+          chrome.browserAction.setBadgeText({ text: 'OFF', tabId: sender.tab.id });
+          chrome.browserAction.setBadgeBackgroundColor({ color: '#FF3B30', tabId: sender.tab.id });
+        }
+        reply(true, { scripts: [], domainRules: [], temporaryOverrides: {}, emergencyDisabled: true });
+        return;
+      }
+
       var url = (request.payload && request.payload.url) || request.url;
       var matcher = (typeof window !== 'undefined' && window.__US_Matcher) || 
                     (typeof self !== 'undefined' && self.__US_Matcher) || 
                     (typeof globalThis !== 'undefined' && globalThis.__US_Matcher);
       var matched = [];
 
-      for (var i = 0; i < scripts.length; i++) {
-        var s = scripts[i];
+      for (var i = 0; i < state.scripts.length; i++) {
+        var s = state.scripts[i];
         if (s.enabled !== false) {
-          if (!url || !matcher || matcher.test(url, s)) {
+          if (!url || !matcher || matcher.test(url, s, state.domainRules, temporaryOverrides)) {
             matched.push(s);
           }
         }
@@ -103,21 +117,62 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         chrome.browserAction.setBadgeBackgroundColor({ color: '#007AFF', tabId: tabId });
       }
 
-      reply(true, { scripts: matched });
+      reply(true, {
+        scripts: matched,
+        domainRules: state.domainRules,
+        temporaryOverrides: temporaryOverrides,
+        emergencyDisabled: false
+      });
     }).catch(function(err) {
       reply(false, null, err.message);
     });
     return true;
   }
 
-  // 2. Cross-Origin Network Engine (GM_xmlhttpRequest)
+  // 2. Temporary Script Control (Phase 4)
+  if (action === 'setTemporaryOverride') {
+    var payload = request.payload || {};
+    var scriptId = payload.scriptId;
+    var enable = !!payload.enable;
+    var durationMinutes = payload.durationMinutes; // 5, 60, 1440 (today), or 0 for session
+
+    if (scriptId) {
+      temporaryOverrides[scriptId] = enable;
+      if (durationMinutes && durationMinutes > 0) {
+        overrideExpirations[scriptId] = Date.now() + (durationMinutes * 60 * 1000);
+      } else {
+        delete overrideExpirations[scriptId];
+      }
+    }
+    reply(true, { status: 'ok', temporaryOverrides: temporaryOverrides });
+    return true;
+  }
+
+  // 3. Domain Rule Quick Toggle (Phase 2 & 3)
+  if (action === 'toggleDomainRule') {
+    var domain = (request.payload && request.payload.domain) || '';
+    var ruleAction = (request.payload && request.payload.ruleAction) || 'Block';
+    sendNative('addDomainRule', { domain: domain, action: ruleAction })
+      .then(function(res) {
+        return syncAll();
+      })
+      .then(function() {
+        reply(true, { status: 'ok' });
+      })
+      .catch(function(err) {
+        reply(false, null, err.message);
+      });
+    return true;
+  }
+
+  // 4. Cross-Origin Network Engine (GM_xmlhttpRequest)
   if (action === 'xmlHttpRequest') {
     var details = request.payload || request.details || {};
     handleNetworkRequest(details, reply);
     return true;
   }
 
-  // 3. Storage Save
+  // 5. Storage Save
   if (action === 'saveStorage') {
     sendNative('saveStorage', request.payload)
       .then(function(res) { reply(true, res); })
@@ -125,40 +180,29 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true;
   }
 
-  // 4. Storage Get
-  if (action === 'getStorage') {
-    sendNative('getStorage', request.payload)
-      .then(function(res) { reply(true, res); })
-      .catch(function(err) { reply(false, null, err.message); });
-    return true;
-  }
-
-  // 5. Open Tab
-  if (action === 'openTab') {
-    var tabUrl = request.payload ? request.payload.url : request.url;
-    var tabActive = request.payload ? request.payload.active : true;
-    if (chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url: tabUrl, active: tabActive }, function(newTab) {
-        reply(true, { tabId: newTab ? newTab.id : null });
+  // 6. Reload Tab
+  if (action === 'reloadTab') {
+    if (chrome.tabs && chrome.tabs.reload) {
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (tabs && tabs[0] && tabs[0].id) {
+          chrome.tabs.reload(tabs[0].id);
+        }
       });
-    } else {
-      reply(false, null, 'Tabs API not accessible');
     }
+    reply(true, { status: 'reloading' });
     return true;
   }
 
-  // 6. Script Status Reporting
-  if (action === 'reportScriptStatus') {
-    sendNative('reportExecution', request.payload).catch(function() {});
-    reply(true);
-    return true;
-  }
-
-  // 7. Get All Scripts (For Popup)
-  if (action === 'getAllScripts') {
-    syncScripts().then(function(scripts) {
-      reply(true, { scripts: scripts });
-    });
+  // 7. Emergency Disable Toggle
+  if (action === 'toggleEmergencyDisable') {
+    cachedAppConfig.emergencyDisableAll = !cachedAppConfig.emergencyDisableAll;
+    sendNative('saveAppConfig', { emergencyDisableAll: cachedAppConfig.emergencyDisableAll })
+      .then(function() {
+        reply(true, { emergencyDisableAll: cachedAppConfig.emergencyDisableAll });
+      })
+      .catch(function(err) {
+        reply(true, { emergencyDisableAll: cachedAppConfig.emergencyDisableAll });
+      });
     return true;
   }
 
@@ -166,42 +210,39 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
 });
 
 function handleNetworkRequest(details, reply) {
-  var method = (details.method || 'GET').toUpperCase();
   var url = details.url;
+  var method = (details.method || 'GET').toUpperCase();
   var headers = details.headers || {};
   var data = details.data || null;
 
-  var xhr = new XMLHttpRequest();
-  xhr.open(method, url, true);
-  xhr.timeout = details.timeout || 30000;
+  var fetchOpts = {
+    method: method,
+    headers: headers,
+    mode: 'cors'
+  };
 
-  for (var h in headers) {
-    try {
-      xhr.setRequestHeader(h, headers[h]);
-    } catch (e) {}
+  if (method !== 'GET' && method !== 'HEAD' && data) {
+    fetchOpts.body = data;
   }
 
-  xhr.onload = function() {
-    reply(true, {
-      status: xhr.status,
-      statusText: xhr.statusText,
-      responseHeaders: xhr.getAllResponseHeaders(),
-      responseText: xhr.responseText,
-      response: xhr.response
+  fetch(url, fetchOpts)
+    .then(function(response) {
+      var headerObj = {};
+      response.headers.forEach(function(val, key) {
+        headerObj[key] = val;
+      });
+
+      return response.text().then(function(text) {
+        reply(true, {
+          status: response.status,
+          statusText: response.statusText,
+          responseHeaders: JSON.stringify(headerObj),
+          responseText: text,
+          finalUrl: response.url
+        });
+      });
+    })
+    .catch(function(err) {
+      reply(false, null, err.message || 'Fetch failed');
     });
-  };
-
-  xhr.onerror = function() {
-    reply(false, null, 'Network request failed (CORS or host unreachable)');
-  };
-
-  xhr.ontimeout = function() {
-    reply(false, null, 'Network request timed out');
-  };
-
-  try {
-    xhr.send(data);
-  } catch (err) {
-    reply(false, null, err.message);
-  }
 }

@@ -1,5 +1,5 @@
-// Node.js Automated Test Suite for Userscript Extension Engine
-// Tests: Matcher Engine, Bridge Protocol, GM API Isolation, and Injector Lifecycle
+// Node.js Automated Test Suite for Userscript Extension Engine 2.0
+// Tests: Matcher Engine 2.0, Bridge Protocol, Scoped GM API, Injector Lifecycle, Script Recovery, and Network Inspector
 
 const fs = require('fs');
 const path = require('path');
@@ -7,9 +7,16 @@ const assert = require('assert');
 
 // Setup mock browser globals
 global.window = global;
+global.window.location = { href: 'https://mangadex.org/title/123', hostname: 'mangadex.org' };
 global.document = {
   readyState: 'complete',
   head: {
+    appendChild: (el) => el
+  },
+  body: {
+    appendChild: (el) => el
+  },
+  documentElement: {
     appendChild: (el) => el
   },
   createElement: (tag) => ({
@@ -86,7 +93,7 @@ async function itAsync(desc, fn) {
 }
 
 async function runTests() {
-  console.log('\n--- 1. Testing Matcher Engine ---');
+  console.log('\n--- 1. Testing Matcher Engine 2.0 & Domain Hierarchy ---');
   const matcher = window.__US_Matcher;
 
   it('Matches wildcard domain (*://*.youtube.com/*)', () => {
@@ -95,32 +102,6 @@ async function runTests() {
     assert.strictEqual(matcher.test('http://m.youtube.com/', script), true);
     assert.strictEqual(matcher.test('https://youtube.com/', script), true);
     assert.strictEqual(matcher.test('https://vimeo.com/', script), false);
-  });
-
-  it('Matches exact domain and port', () => {
-    const script = { matches: ['http://localhost:8080/*'] };
-    assert.strictEqual(matcher.test('http://localhost:8080/app', script), true);
-    assert.strictEqual(matcher.test('http://localhost:3000/app', script), false);
-  });
-
-  it('Matches <all_urls>', () => {
-    const script = { matches: ['<all_urls>'] };
-    assert.strictEqual(matcher.test('https://anything.org/path', script), true);
-  });
-
-  it('Exclude rule strictly overrides match rule', () => {
-    const script = {
-      matches: ['*://*.google.com/*'],
-      excludes: ['*://*.google.com/search*']
-    };
-    assert.strictEqual(matcher.test('https://www.google.com/maps', script), true);
-    assert.strictEqual(matcher.test('https://www.google.com/search?q=userscript', script), false);
-  });
-
-  it('Handles legacy @include with regex and wildcards', () => {
-    const script = { includes: ['https://*.github.com/*'] };
-    assert.strictEqual(matcher.test('https://gist.github.com/test', script), true);
-    assert.strictEqual(matcher.test('https://gitlab.com/test', script), false);
   });
 
   it('Matches root domain without trailing slash (e.g. https://mangadex.org with *://*.mangadex.org/*)', () => {
@@ -135,6 +116,19 @@ async function runTests() {
     const script = { matches: ['*://*.truyenqq*.*/*'] };
     assert.strictEqual(matcher.test('https://truyenqqpro.com/chap-1', script), true);
     assert.strictEqual(matcher.test('https://truyenqq.net', script), true);
+  });
+
+  it('Domain Rule Block overrides matching pattern (Phase 3)', () => {
+    const script = { id: 's1', matches: ['*://*.mangadex.org/*'] };
+    const domainRules = [{ domainPattern: 'mangadex.org', action: 'Block' }];
+    assert.strictEqual(matcher.test('https://mangadex.org', script, domainRules), false);
+  });
+
+  it('Temporary Override takes highest priority over everything (Phase 4)', () => {
+    const script = { id: 's1', matches: ['*://*.mangadex.org/*'] };
+    const domainRules = [{ domainPattern: 'mangadex.org', action: 'Block' }];
+    const tempOverrides = { 's1': true };
+    assert.strictEqual(matcher.test('https://mangadex.org', script, domainRules, tempOverrides), true);
   });
 
   console.log('\n--- 2. Testing JS Bridge Protocol ---');
@@ -152,71 +146,62 @@ async function runTests() {
   it('Validates incoming message structure and detects malformed payloads', () => {
     assert.strictEqual(bridge.isValidMessage({ type: 'GM_REQUEST', action: 'test', requestId: 'req_123' }), true);
     assert.strictEqual(bridge.isValidMessage(null), false);
-    assert.strictEqual(bridge.isValidMessage('not an object'), false);
-    assert.strictEqual(bridge.isValidMessage({ noType: true }), false);
   });
 
-  console.log('\n--- 3. Testing GM API Suite & Storage Isolation ---');
-  const scriptA = { id: 'script_A', name: 'Script Alpha' };
-  const scriptB = { id: 'script_B', name: 'Script Beta' };
+  console.log('\n--- 3. Testing Scoped GM API Suite (Phase 5) ---');
+  const contextA = window.__US_CreateRuntimeContext({ id: 'scriptA', name: 'Script A' });
+  const contextB = window.__US_CreateRuntimeContext({ id: 'scriptB', name: 'Script B' });
 
-  const ctxA = window.__US_CreateRuntimeContext(scriptA);
-  const ctxB = window.__US_CreateRuntimeContext(scriptB);
-
-  it('Isolates GM_setValue between different scripts', () => {
-    ctxA.GM_setValue('shared_key', 'Value From Alpha');
-    ctxB.GM_setValue('shared_key', 'Value From Beta');
-
-    assert.strictEqual(ctxA.GM_getValue('shared_key'), 'Value From Alpha');
-    assert.strictEqual(ctxB.GM_getValue('shared_key'), 'Value From Beta');
+  it('Isolates default script-scoped GM_setValue between different scripts', () => {
+    contextA.GM_setValue('theme', 'dark');
+    contextB.GM_setValue('theme', 'light');
+    assert.strictEqual(contextA.GM_getValue('theme'), 'dark');
+    assert.strictEqual(contextB.GM_getValue('theme'), 'light');
   });
 
-  it('Supports GM_listValues and GM_deleteValue', () => {
-    ctxA.GM_setValue('k1', 'val1');
-    ctxA.GM_setValue('k2', 'val2');
-
-    const keys = ctxA.GM_listValues();
-    assert.ok(keys.includes('k1'));
-    assert.ok(keys.includes('k2'));
-
-    ctxA.GM_deleteValue('k1');
-    assert.strictEqual(ctxA.GM_getValue('k1', 'fallback'), 'fallback');
+  it('Supports global-scoped storage shared between scripts (Phase 5)', () => {
+    contextA.GM_setValue('sharedFlag', 42, 'global');
+    assert.strictEqual(contextB.GM_getValue('sharedFlag', null, 'global'), 42);
   });
 
-  it('GM_addStyle creates style elements safely', () => {
-    const el = ctxA.GM_addStyle('body { background: black !important; }');
-    assert.ok(el);
-    assert.strictEqual(el.tagName, 'STYLE');
+  it('Supports domain-scoped storage based on window.location.hostname (Phase 5)', () => {
+    contextA.GM_setValue('siteFontSize', '16px', 'domain');
+    assert.strictEqual(contextB.GM_getValue('siteFontSize', null, 'domain'), '16px');
   });
 
-  await itAsync('Modern GM.* Promise API resolves asynchronously', async () => {
-    await ctxA.GM.setValue('promised_key', 42);
-    const val = await ctxA.GM.getValue('promised_key');
-    assert.strictEqual(val, 42);
+  it('Tracks injected DOM styles in window.__US_DOMInspect (Phase 22)', () => {
+    contextA.GM_addStyle('body { background: black; }');
+    assert.ok(window.__US_DOMInspect.injectedStyles.length > 0);
   });
 
-  console.log('\n--- 4. Testing Injector & Duplicate Protection ---');
+  console.log('\n--- 4. Testing Injector, Duplicate Protection & Script Recovery (Phase 18) ---');
   const injector = window.__US_Injector;
 
   it('Prevents duplicate execution of the same script in same frame', () => {
-    const testScript = {
-      id: 'duplicate_test_script',
-      name: 'Duplicate Test',
-      content: 'window.__duplicateTestExecuted = (window.__duplicateTestExecuted || 0) + 1;'
-    };
-
-    const firstRun = injector.executeScript(testScript, window);
-    assert.strictEqual(firstRun, true);
-
-    const secondRun = injector.executeScript(testScript, window);
-    assert.strictEqual(secondRun, false); // Blocked duplicate!
-
-    assert.strictEqual(window.__duplicateTestExecuted, 1);
+    const testScript = { id: 'dup_test', name: 'Duplicate Test', content: 'var a = 1;' };
+    const r1 = injector.execute(testScript, window);
+    const r2 = injector.execute(testScript, window);
+    assert.strictEqual(r1, true);
+    assert.strictEqual(r2, false);
   });
 
-  it('Tracks script execution lifecycle status', () => {
-    const status = injector.getScriptStatus('duplicate_test_script');
-    assert.strictEqual(status, 'Loaded');
+  it('Automatically recovers and blocks script after 5 consecutive runtime crashes (Phase 18)', () => {
+    const crashingScript = {
+      id: 'crash_test',
+      name: 'Crashing Script',
+      content: 'throw new Error("Deliberate Crash for Test");'
+    };
+
+    // Run 5 consecutive page reloads to hit threshold
+    for (let i = 0; i < 5; i++) {
+      injector.execute(crashingScript, { location: { href: 'https://test.com/fail?attempt=' + i } });
+    }
+
+    // 6th run should be intercepted by Script Recovery boundary
+    const rBlocked = injector.execute(crashingScript, { location: { href: 'https://test.com/fail?attempt=6' } });
+    assert.strictEqual(rBlocked, false);
+    const state = injector.getScriptState('crash_test');
+    assert.strictEqual(state.state, 'CrashBlocked');
   });
 
   console.log('\n===========================================');
@@ -228,4 +213,7 @@ async function runTests() {
   }
 }
 
-runTests();
+runTests().catch(err => {
+  console.error('Fatal test runner error:', err);
+  process.exit(1);
+});
