@@ -146,7 +146,7 @@
 				61CB7A3F61B448FBA73F2777 /* Info.plist */,
 				95810833183543DB9A055DEB /* Userscript.entitlements */,
 			);
-			path = Userscript;
+			name = Userscript;
 			sourceTree = "<group>";
 		};
 		63038218469341B49501C4C4 /* UserscriptExtension */ = {
@@ -170,7 +170,7 @@
 				2651184F37064DDF9EEDB932 /* icon-96.png */,
 				DE52BE4522E14044AC06DFE8 /* icon-128.png */,
 			);
-			path = UserscriptExtension;
+			name = UserscriptExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
