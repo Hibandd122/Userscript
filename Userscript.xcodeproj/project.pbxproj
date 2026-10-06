@@ -38,8 +38,8 @@
 		8B2202EB2202422282220002 /* bridge.js in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220001 /* bridge.js */; };
 		8B2202EB2202422282220004 /* injector.js in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220003 /* injector.js */; };
 		8B2202EB2202422282220006 /* test-suite.html in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220005 /* test-suite.html */; };
-		8B2202EB2202422282220011 /* MangaUniversalPro.bundle.user.js in Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */; };
-		8B2202EB2202422282220012 /* MangaUniversalPro.bundle.user.js in Extension Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */; };
+		8B2202EB2202422282220011 /* onluyen_get_all_questions.user.js in Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* onluyen_get_all_questions.user.js */; };
+		8B2202EB2202422282220012 /* onluyen_get_all_questions.user.js in Extension Resources */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220010 /* onluyen_get_all_questions.user.js */; };
 		8B2202EB2202422282220022 /* DomainRule.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220021 /* DomainRule.swift */; };
 		8B2202EB2202422282220024 /* ScriptGroup.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220023 /* ScriptGroup.swift */; };
 		8B2202EB2202422282220026 /* AppConfig.swift in Build */ = {isa = PBXBuildFile; fileRef = 8B2202EB2202422282220025 /* AppConfig.swift */; };
@@ -120,7 +120,7 @@
 		8B2202EB2202422282220001 /* bridge.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/bridge.js"; sourceTree = "<group>"; };
 		8B2202EB2202422282220003 /* injector.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "UserscriptExtension/Resources/injector.js"; sourceTree = "<group>"; };
 		8B2202EB2202422282220005 /* test-suite.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "UserscriptExtension/Resources/test-suite.html"; sourceTree = "<group>"; };
-		8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "Userscript/Resources/MangaUniversalPro.bundle.user.js"; sourceTree = "<group>"; };
+		8B2202EB2202422282220010 /* onluyen_get_all_questions.user.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "Userscript/Resources/onluyen_get_all_questions.user.js"; sourceTree = "<group>"; };
 		8B2202EB2202422282220021 /* DomainRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/DomainRule.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220023 /* ScriptGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/ScriptGroup.swift"; sourceTree = "<group>"; };
 		8B2202EB2202422282220025 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Userscript/Models/AppConfig.swift"; sourceTree = "<group>"; };
@@ -182,7 +182,7 @@
 				775D7B13950F44D581C0DC69 /* Assets.xcassets */,
 				61CB7A3F61B448FBA73F2777 /* Info.plist */,
 				95810833183543DB9A055DEB /* Userscript.entitlements */,
-				8B2202EB2202422282220010 /* MangaUniversalPro.bundle.user.js */,
+				8B2202EB2202422282220010 /* onluyen_get_all_questions.user.js */,
 				8B2202EB2202422282220021 /* DomainRule.swift */,
 				8B2202EB2202422282220023 /* ScriptGroup.swift */,
 				8B2202EB2202422282220025 /* AppConfig.swift */,
@@ -307,7 +307,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				BBE4A17D7B87440DB24489A9 /* Assets.xcassets in Resources */,
-				8B2202EB2202422282220011 /* MangaUniversalPro.bundle.user.js in Resources */,
+				8B2202EB2202422282220011 /* onluyen_get_all_questions.user.js in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -329,7 +329,7 @@
 				5BF307228D244F7FB5AAF05F /* icon-48.png in Resources */,
 				C817F44885CE43469A7748E6 /* icon-96.png in Resources */,
 				9BEE0C436C4F458CA9B4248C /* icon-128.png in Resources */,
-				8B2202EB2202422282220012 /* MangaUniversalPro.bundle.user.js in Extension Resources */,
+				8B2202EB2202422282220012 /* onluyen_get_all_questions.user.js in Extension Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

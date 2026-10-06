@@ -302,9 +302,20 @@ public final class ScriptManager: ObservableObject {
         public let reason: String
     }
 
-    public func testMatches(for urlString: String) -> [MatchTestResult] {
-        guard let url = URL(string: urlString) else { return [] }
-        let host = url.host ?? urlString
+    public func testMatches(for rawInput: String) -> [MatchTestResult] {
+        let trimmed = rawInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return [] }
+
+        // Normalize URL for tolerant matching
+        let normalizedUrl: String
+        if !trimmed.contains("://") {
+            normalizedUrl = "https://" + trimmed
+        } else {
+            normalizedUrl = trimmed
+        }
+
+        let parsedUrl = URL(string: normalizedUrl)
+        let host = parsedUrl?.host ?? trimmed
         var results: [MatchTestResult] = []
 
         for script in scripts {
@@ -314,7 +325,7 @@ public final class ScriptManager: ObservableObject {
             // Check Excludes
             var isExcluded = false
             for exc in script.excludes {
-                if wildcardMatch(urlString, pattern: exc) || wildcardMatch(host, pattern: exc) {
+                if evaluatePattern(pattern: exc, urlString: normalizedUrl, rawInput: trimmed, host: host) {
                     isExcluded = true
                     reason = "Blocked by @exclude '\(exc)'"
                     break
@@ -323,7 +334,7 @@ public final class ScriptManager: ObservableObject {
 
             if !isExcluded {
                 for m in script.matches {
-                    if m == "<all_urls>" || wildcardMatch(urlString, pattern: m) || wildcardMatch(host, pattern: m) {
+                    if m == "<all_urls>" || evaluatePattern(pattern: m, urlString: normalizedUrl, rawInput: trimmed, host: host) {
                         matched = true
                         reason = "Matched @match '\(m)'"
                         break
@@ -331,7 +342,7 @@ public final class ScriptManager: ObservableObject {
                 }
                 if !matched {
                     for inc in script.includes {
-                        if wildcardMatch(urlString, pattern: inc) || wildcardMatch(host, pattern: inc) {
+                        if evaluatePattern(pattern: inc, urlString: normalizedUrl, rawInput: trimmed, host: host) {
                             matched = true
                             reason = "Matched @include '\(inc)'"
                             break
@@ -346,13 +357,103 @@ public final class ScriptManager: ObservableObject {
         return results
     }
 
+    private func evaluatePattern(pattern: String, urlString: String, rawInput: String, host: String) -> Bool {
+        let p = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+        if p.isEmpty { return false }
+        if p == "<all_urls>" { return true }
+
+        // Test with full URL, raw input, host, and normalized URL with trailing slash
+        let urlWithSlash = urlString.contains("/") ? (urlString.components(separatedBy: "?").first?.components(separatedBy: "#").first?.hasSuffix("/") == true ? urlString : (urlString.contains("?") || urlString.contains("#") ? urlString : urlString + "/")) : urlString + "/"
+
+        if wildcardMatch(urlString, pattern: p) { return true }
+        if wildcardMatch(urlWithSlash, pattern: p) { return true }
+        if wildcardMatch(rawInput, pattern: p) { return true }
+        if wildcardMatch(host, pattern: p) { return true }
+
+        return false
+    }
+
     private func wildcardMatch(_ text: String, pattern: String) -> Bool {
-        var p = pattern.replacingOccurrences(of: "*://", with: "https?://")
-        p = p.replacingOccurrences(of: ".", with: "\\.")
-        p = p.replacingOccurrences(of: "*", with: ".*")
-        let regex = try? NSRegularExpression(pattern: "^" + p + "$", options: .caseInsensitive)
-        let range = NSRange(location: 0, length: text.utf16.count)
-        return regex?.firstMatch(in: text, options: [], range: range) != nil
+        var pat = pattern.trimmingCharacters(in: .whitespacesAndNewlines)
+        if pat.isEmpty { return false }
+
+        // Handle RegExp format /pattern/flags
+        if pat.hasPrefix("/") && pat.count > 2 && pat.dropFirst().contains("/") {
+            let lastSlash = pat.lastIndex(of: "/")!
+            let expr = String(pat[pat.index(after: pat.startIndex)..<lastSlash])
+            if let regex = try? NSRegularExpression(pattern: expr, options: .caseInsensitive) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                return regex.firstMatch(in: text, options: [], range: range) != nil
+            }
+        }
+
+        // Scheme handling
+        let schemeSep = "://"
+        var schemeRegex = "https?"
+        var hostRegex = ""
+        var pathRegex = "(?:/.*)?"
+
+        if let schemeRange = pat.range(of: schemeSep) {
+            let schemePart = String(pat[..<schemeRange.lowerBound])
+            let rest = String(pat[schemeRange.upperBound...])
+
+            if schemePart == "*" || schemePart.lowercased() == "http*" {
+                schemeRegex = "https?"
+            } else {
+                schemeRegex = NSRegularExpression.escapedPattern(for: schemePart)
+            }
+
+            if let slashIdx = rest.firstIndex(of: "/") {
+                let hostPart = String(rest[..<slashIdx])
+                let pathPart = String(rest[slashIdx...])
+
+                hostRegex = buildHostRegex(hostPart)
+                pathRegex = buildPathRegex(pathPart)
+            } else {
+                hostRegex = buildHostRegex(rest)
+                pathRegex = "(?:/.*)?"
+            }
+
+            let patternRegexStr = "^(?:" + schemeRegex + "://)?" + hostRegex + "(?::\\d+)?" + pathRegex + "$"
+            if let regex = try? NSRegularExpression(pattern: patternRegexStr, options: .caseInsensitive) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                if regex.firstMatch(in: text, options: [], range: range) != nil {
+                    return true
+                }
+            }
+        } else {
+            // Pattern has no scheme (e.g. *onluyen*, app.onluyen.vn, *://*.onluyen.vn)
+            let escaped = NSRegularExpression.escapedPattern(for: pat).replacingOccurrences(of: "\\*", with: ".*")
+            if let regex = try? NSRegularExpression(pattern: escaped, options: .caseInsensitive) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                if regex.firstMatch(in: text, options: [], range: range) != nil {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    private func buildHostRegex(_ host: String) -> String {
+        if host == "*" {
+            return "[^/:]+"
+        }
+        if host.hasPrefix("*.") {
+            let base = String(host.dropFirst(2))
+            let escapedBase = NSRegularExpression.escapedPattern(for: base).replacingOccurrences(of: "\\*", with: "[^/:]*")
+            return "(?:[^/:]+\\.)*" + escapedBase
+        }
+        return NSRegularExpression.escapedPattern(for: host).replacingOccurrences(of: "\\*", with: "[^/:]*")
+    }
+
+    private func buildPathRegex(_ path: String) -> String {
+        if path == "/*" || path == "/" || path.isEmpty {
+            return "(?:/.*)?"
+        }
+        var p = NSRegularExpression.escapedPattern(for: path)
+        p = p.replacingOccurrences(of: "\\*", with: ".*")
+        return p
     }
 
     // MARK: - Import / Export
@@ -407,14 +508,14 @@ public final class ScriptManager: ObservableObject {
     public func installDefaultScripts() {
         var defaultList: [UserScript] = []
 
-        // 1. Manga Universal Pro (Offline Bundle)
-        if let bundleURL = Bundle.main.url(forResource: "MangaUniversalPro.bundle.user", withExtension: "js"),
+        // 1. OnLuyen · Lấy & Copy Toàn Bộ Câu Hỏi (Bundled Automation Script)
+        if let bundleURL = Bundle.main.url(forResource: "onluyen_get_all_questions.user", withExtension: "js"),
            let content = try? String(contentsOf: bundleURL, encoding: .utf8) {
-            var mangaScript = ScriptParser.parse(content: content, sourceUrl: "MangaUniversalPro.bundle.user.js")
-            mangaScript.group = "anime"
-            mangaScript.trustLevel = .trusted
-            autoTag(script: &mangaScript)
-            defaultList.append(mangaScript)
+            var onluyenScript = ScriptParser.parse(content: content, sourceUrl: "onluyen_get_all_questions.user.js")
+            onluyenScript.group = "education"
+            onluyenScript.trustLevel = .trusted
+            autoTag(script: &onluyenScript)
+            defaultList.append(onluyenScript)
         }
 
         // 2. Clean Auto Dark Mode

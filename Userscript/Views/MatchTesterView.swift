@@ -2,7 +2,7 @@ import SwiftUI
 
 public struct MatchTesterView: View {
     @ObservedObject var manager = ScriptManager.shared
-    @State private var testUrl = "https://mangadex.org"
+    @State private var testUrl = "https://app.onluyen.vn"
     @State private var testResults: [ScriptManager.MatchTestResult] = []
 
     public init() {}
@@ -24,8 +24,8 @@ public struct MatchTesterView: View {
             Section(header: Text("Quick Presets")) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        PresetChip(title: "MangaDex", url: "https://mangadex.org") { testUrl = $0; runTest() }
-                        PresetChip(title: "CuuTruyen", url: "https://cuutruyen.net/manga/1") { testUrl = $0; runTest() }
+                        PresetChip(title: "OnLuyen", url: "https://app.onluyen.vn") { testUrl = $0; runTest() }
+                        PresetChip(title: "OnLuyen Hash", url: "https://app.onluyen.vn/#/study") { testUrl = $0; runTest() }
                         PresetChip(title: "YouTube", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ") { testUrl = $0; runTest() }
                         PresetChip(title: "Google", url: "https://www.google.com/search?q=test") { testUrl = $0; runTest() }
                     }

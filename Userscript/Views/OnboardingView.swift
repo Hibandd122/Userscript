@@ -120,9 +120,9 @@ public struct OnboardingView: View {
             USCard {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("MangaUniversal Pro")
+                        Text("OnLuyen Automation")
                             .font(.headline)
-                        Text("Seamless infinite reader for MangaDex & webtoons")
+                        Text("Smart question extraction & automation helper for onluyen.vn")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

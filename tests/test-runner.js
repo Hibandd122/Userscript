@@ -148,6 +148,29 @@ async function runTests() {
     assert.strictEqual(r2.reason, 'not-matched');
   });
 
+  it('Matches OnLuyen script across all URL variations and tolerant formats', () => {
+    const onluyenScript = {
+      name: 'OnLuyen',
+      matches: ['https://app.onluyen.vn/*']
+    };
+    // Root URL without slash
+    assert.strictEqual(matcher.test('https://app.onluyen.vn', onluyenScript), true);
+    // Root URL with slash
+    assert.strictEqual(matcher.test('https://app.onluyen.vn/', onluyenScript), true);
+    // SPA hash route
+    assert.strictEqual(matcher.test('https://app.onluyen.vn/#/study/exam/123', onluyenScript), true);
+    // Query parameters
+    assert.strictEqual(matcher.test('https://app.onluyen.vn/?tab=practice', onluyenScript), true);
+    // Scheme tolerance (http vs https)
+    assert.strictEqual(matcher.test('http://app.onluyen.vn', onluyenScript), true);
+    assert.strictEqual(matcher.test('http://app.onluyen.vn/', onluyenScript), true);
+    // Bare domain without scheme
+    assert.strictEqual(matcher.test('app.onluyen.vn', onluyenScript), true);
+    assert.strictEqual(matcher.test('app.onluyen.vn/#/exam', onluyenScript), true);
+    // Different domain should not match
+    assert.strictEqual(matcher.test('https://other.vn', onluyenScript), false);
+  });
+
   it('Matches root domain without trailing slash (https://mangadex.org)', () => {
     const script = { matches: ['*://*.mangadex.org/*'] };
     assert.strictEqual(matcher.test('https://mangadex.org', script), true);

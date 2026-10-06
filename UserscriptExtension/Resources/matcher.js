@@ -67,41 +67,28 @@
 
     var schemeSeparator = '://';
     var schemeIdx = pattern.indexOf(schemeSeparator);
+    var schemeRegex = 'https?';
+    var host = pattern;
+    var path = '/*';
 
-    // If no scheme specified (e.g. *chapter*, mangadex.org, *mangadex*)
-    if (schemeIdx === -1) {
-      var isWildcard = pattern.indexOf('*') !== -1;
-      var wildcardRe;
-      if (isWildcard) {
-        var escaped = pattern
-          .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-          .replace(/\*/g, '.*');
-        wildcardRe = new RegExp(escaped, 'i');
+    if (schemeIdx !== -1) {
+      var scheme = pattern.slice(0, schemeIdx).toLowerCase();
+      var rest = pattern.slice(schemeIdx + schemeSeparator.length);
+      if (scheme === '*' || scheme === 'http*' || scheme === 'http' || scheme === 'https') {
+        schemeRegex = 'https?';
       } else {
-        // Exact or subdomain match
-        var escapedDomain = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-        wildcardRe = new RegExp('(?:^|[./])' + escapedDomain + '(?::|/|$)', 'i');
+        schemeRegex = scheme.replace(/[.+^${}()|[\]\\]/g, '\\$&');
       }
-      regexCache[pattern] = wildcardRe;
-      return wildcardRe;
-    }
-
-    var scheme = pattern.slice(0, schemeIdx);
-    var rest = pattern.slice(schemeIdx + schemeSeparator.length);
-
-    var slashIdx = rest.indexOf('/');
-    var host = slashIdx === -1 ? rest : rest.slice(0, slashIdx);
-    var path = slashIdx === -1 ? '/*' : rest.slice(slashIdx);
-
-    // 1. Scheme regex
-    var schemeRegex;
-    if (scheme === '*') {
-      schemeRegex = 'https?';
+      var slashIdx = rest.indexOf('/');
+      host = slashIdx === -1 ? rest : rest.slice(0, slashIdx);
+      path = slashIdx === -1 ? '/*' : rest.slice(slashIdx);
     } else {
-      schemeRegex = scheme.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      var sIdx = pattern.indexOf('/');
+      host = sIdx === -1 ? pattern : pattern.slice(0, sIdx);
+      path = sIdx === -1 ? '/*' : pattern.slice(sIdx);
     }
 
-    // 2. Host regex
+    // Host regex
     var hostRegex;
     if (host === '*') {
       hostRegex = '[^/:]+';
@@ -110,26 +97,31 @@
       var baseRegex = baseDomain
         .replace(/[.+^${}()|[\]\\]/g, '\\$&')
         .replace(/\*/g, '[^/:]*');
-      // Matches both "mangadex.org" and "sub.mangadex.org"
+      // Matches root domain, subdomains, and www
       hostRegex = '(?:[^/:]+\\.)*' + baseRegex;
     } else {
-      hostRegex = host
+      var escapedHost = host
         .replace(/[.+^${}()|[\]\\]/g, '\\$&')
         .replace(/\*/g, '[^/:]*');
+      hostRegex = '(?:www\\.)?' + escapedHost;
     }
 
-    // 3. Path regex
+    // Path regex: if /* or / or empty, match optional slash + rest
     var pathRegex;
-    if (path === '/*' || path === '') {
+    if (path === '/*' || path === '/' || path === '') {
       pathRegex = '(?:\\/.*)?';
     } else {
-      pathRegex = path
+      var p = path
         .replace(/[.+^${}()|[\]\\]/g, '\\$&')
         .replace(/\*/g, '.*');
+      if (p.slice(-5) === '\\/.*') {
+        p = p.slice(0, -5) + '(?:\\/.*)?';
+      }
+      pathRegex = p;
     }
 
     try {
-      var compiled = new RegExp('^' + schemeRegex + ':\\/\\/' + hostRegex + '(?::\\d+)?' + pathRegex + '$', 'i');
+      var compiled = new RegExp('^(?:' + schemeRegex + ':\\/\\/)?' + hostRegex + '(?::\\d+)?' + pathRegex + '$', 'i');
       regexCache[pattern] = compiled;
       return compiled;
     } catch (e) {

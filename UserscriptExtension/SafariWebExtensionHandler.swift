@@ -108,37 +108,27 @@ public final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandli
         }
 
         // Bundled fallback for instant sideload / offline support
-        if let bundleURL = Bundle.main.url(forResource: "MangaUniversalPro.bundle.user", withExtension: "js"),
+        if let bundleURL = Bundle.main.url(forResource: "onluyen_get_all_questions.user", withExtension: "js"),
            let content = try? String(contentsOf: bundleURL, encoding: .utf8) {
             let scriptDict: [String: Any] = [
-                "id": "manga-universal-pro",
-                "name": "Manga Universal Pro (Offline Bundle)",
-                "version": "3.0.0",
-                "author": "Manga Pro Team",
+                "id": "onluyen-get-all-questions",
+                "name": "OnLuyen · Lấy & Copy Toàn Bộ Câu Hỏi",
+                "version": "4.0.0",
+                "author": "Tris",
                 "enabled": true,
                 "priority": 100,
-                "runAt": "document-start",
+                "runAt": "document-idle",
                 "matches": [
-                    "*://*.mangadex.org/*",
-                    "*://*.cuutruyen.net/*",
-                    "*://*.truyenqq*.*/*",
-                    "*://*.tvtruyen.*/*",
-                    "*://*.nettruyen*.*/*",
-                    "*://*.blogtruyen*.*/*",
-                    "*://*.nhentai.net/*",
-                    "*://*.nhentai.xxx/*",
-                    "*://*.nhentai.to/*",
-                    "*://*.hentaiz.*/*",
-                    "*://hentaiz.*/*",
-                    "*://*.rule34.xxx/*",
-                    "*://rule34.xxx/*",
-                    "*://*.rule34video.com/*",
-                    "*://rule34video.com/*",
-                    "*://*/*chapter*",
-                    "*://*/*truyen*",
-                    "*://*/*manga*"
+                    "https://app.onluyen.vn/*",
+                    "*://app.onluyen.vn/*",
+                    "*://*.onluyen.vn/*"
                 ],
-                "grants": ["none"],
+                "grants": [
+                    "GM_xmlhttpRequest",
+                    "GM_setClipboard",
+                    "GM_setValue",
+                    "GM_getValue"
+                ],
                 "noframes": false,
                 "content": content
             ]
